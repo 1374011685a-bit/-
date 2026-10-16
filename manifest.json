@@ -1,0 +1,25 @@
+{
+  "name": "方块跳跳 Block Jump",
+  "short_name": "Block Jump",
+  "description": "一键操作的像素风休闲跳跃游戏 · A one-button pixel-art jumping game",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#080c17",
+  "theme_color": "#080c17",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

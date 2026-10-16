@@ -1,0 +1,4470 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0a0e19" />
+    <meta name="description" content="Block Jump 方块跳跳 - a one-button pixel-art jumping game. 一键操作的像素风休闲跳跃游戏。" />
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAA10lEQVR42u3asQ3CMBBA0SzAApS0FCzALgwAkzAJHRX7MEVa0gUXtjBCyZ3E+5IbpFjJK2InYRgkSZJ+6HbavSIGAABJLnp8nENGKAYAAHWA5/W46EhzPwAAAAAAABWAsv12M4+ei+s5FgCAQIDWLqz8vTzxbwF6jm0BlOcAAMDKz/0ZAFa5HwAA8BkgaicIAAAAAAAyA7SWuNZyd78cqgMAgCSfzKK+B6Z8IQLgHwH8PwAAgOqrstYymGFOAAAAAACwRD3P8RnmBAAgcCeYYU4AACRJkt5NX+DGgyqBSWQAAAAASUVORK5CYII=" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Block Jump" />
+    <title>方块跳跳 Block Jump</title>
+    <style>
+/* Block Jump - presentation layer.
+   Palette and type follow the game's design deck: deep navy, a single orange
+   accent, tight bold sans headings, monospace numerals. */
+
+:root {
+  --bg: #080c17;
+  --panel: #0f1524;
+  --panel-2: #151d31;
+  --ink: #eef2fa;
+  --muted: #98a2b8;
+  --accent: #f08c2e;
+  --accent-soft: #ffb066;
+  --line: rgba(255, 255, 255, 0.1);
+  --green: #7ee081;
+  --amber: #ffd166;
+  --shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+body {
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ------------------------------- stage ------------------------------- */
+
+#stage {
+  position: relative;
+  box-shadow: var(--shadow);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #05070e;
+}
+
+#game {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  touch-action: none;
+  cursor: pointer;
+}
+
+/* -------------------------------- hud -------------------------------- */
+
+#hud {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 480px;
+  height: 270px;
+  transform-origin: 0 0;
+  transform: scale(var(--hud-scale, 1));
+  pointer-events: none;
+  line-height: 1.3;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  transition: opacity 0.2s ease;
+}
+
+#hud.hidden {
+  opacity: 0;
+}
+
+.hud-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 7px 9px 0;
+  gap: 6px;
+}
+
+.hud-cell {
+  min-width: 0;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.75);
+}
+
+.hud-right {
+  text-align: right;
+  padding-right: 22px;
+}
+
+.hud-center {
+  text-align: center;
+}
+
+.hud-label {
+  font-size: 5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.hud-big {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.02;
+}
+
+.hud-mid {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--accent-soft);
+}
+
+.hud-sub {
+  font-size: 6px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+.star {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 3px;
+  vertical-align: -1px;
+  background: #ffe066;
+  clip-path: polygon(50% 0, 61% 38%, 100% 38%, 68% 60%, 79% 100%, 50% 76%, 21% 100%, 32% 60%, 0 38%, 39% 38%);
+}
+
+.chips {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  font-size: 7px;
+  letter-spacing: 0.06em;
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: rgba(8, 12, 23, 0.6);
+}
+
+.chip.shield {
+  color: #8ec2ff;
+  border-color: rgba(142, 194, 255, 0.5);
+}
+
+.chip.boost {
+  color: #ffb08a;
+  border-color: rgba(255, 176, 138, 0.5);
+}
+
+.chip.magnet {
+  color: #8ce8aa;
+  border-color: rgba(140, 232, 170, 0.5);
+}
+
+/* power meter */
+.meter {
+  position: absolute;
+  left: 50%;
+  bottom: 9px;
+  transform: translateX(-50%);
+  width: 200px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.meter.show {
+  opacity: 1;
+}
+
+.meter-track {
+  position: relative;
+  height: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(6, 9, 17, 0.72);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.meter-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  background: linear-gradient(90deg, #6b4a1c, var(--accent) 70%, #ffd08a);
+}
+
+.meter-window {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  background: rgba(126, 224, 129, 0.34);
+  border-left: 1px solid rgba(126, 224, 129, 0.8);
+  border-right: 1px solid rgba(126, 224, 129, 0.8);
+}
+
+.meter-marker {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  left: 0;
+  background: #fff;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.8);
+}
+
+.meter-hint {
+  margin-top: 3px;
+  text-align: center;
+  font-size: 6px;
+  letter-spacing: 0.06em;
+  color: rgba(238, 242, 250, 0.72);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7);
+  transition: opacity 0.4s ease;
+}
+
+.meter-hint.fade {
+  opacity: 0;
+}
+
+.icon-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  pointer-events: auto;
+  width: 18px;
+  height: 15px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+  line-height: 1;
+  color: var(--ink);
+  background: rgba(8, 12, 23, 0.6);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.icon-btn.pause.show {
+  display: flex;
+}
+
+.toast {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: 3px;
+  background: rgba(8, 12, 23, 0.82);
+  border: 1px solid var(--line);
+  color: var(--accent-soft);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  white-space: nowrap;
+}
+
+.toast.show {
+  opacity: 1;
+}
+
+.floaters {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.floater {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  animation: float-up 0.9s ease-out forwards;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
+}
+
+.floater.perfect {
+  color: var(--green);
+}
+
+.floater.star {
+  color: #ffe066;
+}
+
+.floater.power {
+  color: #8ec2ff;
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  25% {
+    opacity: 1;
+    transform: translate(-50%, -70%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -150%) scale(1);
+  }
+}
+
+/* ------------------------------ screens ------------------------------ */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow-y: auto;
+  background: radial-gradient(120% 90% at 20% 0%, #131c33 0%, #080c17 60%);
+  padding: 22px;
+  animation: fade-in 0.18s ease;
+}
+
+.screen.show {
+  display: block;
+}
+
+.screen.dim {
+  background: rgba(6, 9, 17, 0.82);
+  backdrop-filter: blur(3px);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.screen-inner {
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.screen-inner.center {
+  text-align: center;
+  padding-top: min(8vh, 60px);
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(38px, 9vw, 76px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 0.98;
+}
+
+.title-cn {
+  margin: 6px 0 0;
+  font-size: clamp(16px, 3.4vw, 26px);
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+}
+
+.tagline {
+  margin: 14px 0 0;
+  font-size: clamp(12px, 2.2vw, 15px);
+  color: rgba(238, 242, 250, 0.9);
+}
+
+.tagline.cn {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.h2 {
+  margin: 0;
+  font-size: clamp(24px, 5vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.h2-cn {
+  margin: 4px 0 18px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.body {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(238, 242, 250, 0.86);
+}
+
+.body.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.rule {
+  height: 1px;
+  margin: 22px 0;
+  background: var(--line);
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+
+.keys {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.key {
+  display: inline-block;
+  padding: 7px 12px;
+  border: 1px solid rgba(240, 140, 46, 0.55);
+  border-radius: 4px;
+  background: rgba(240, 140, 46, 0.1);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-soft);
+}
+
+.key.wide {
+  border-radius: 999px;
+  padding: 7px 22px;
+}
+
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 14px;
+}
+
+.steps li {
+  display: grid;
+  gap: 2px;
+  padding-left: 44px;
+  position: relative;
+}
+
+.steps li b {
+  font-size: 15px;
+  color: var(--accent);
+}
+
+.steps li span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--accent);
+  opacity: 0.85;
+}
+
+.steps {
+  counter-reset: step;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  border: 1px solid rgba(240, 140, 46, 0.28);
+  border-radius: 6px;
+  background: rgba(240, 140, 46, 0.06);
+  padding: 12px;
+  display: grid;
+  gap: 5px;
+}
+
+.card b {
+  font-size: 13px;
+}
+
+.card span {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.menu {
+  display: grid;
+  gap: 10px;
+  margin-top: 26px;
+  justify-items: center;
+}
+
+.menu.row {
+  grid-auto-flow: column;
+  justify-content: center;
+  grid-auto-columns: max-content;
+}
+
+.btn {
+  position: relative;
+  min-width: min(320px, 84vw);
+  padding: 12px 20px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn span {
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(240, 140, 46, 0.5);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn.primary {
+  background: linear-gradient(180deg, #f39a3f, #d9761c);
+  border-color: #ffca8a;
+  color: #24140a;
+}
+
+.btn.primary span {
+  color: rgba(36, 20, 10, 0.66);
+}
+
+.menu.row .btn {
+  min-width: min(220px, 40vw);
+}
+
+.toggles {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.toggle {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.toggle.on {
+  color: var(--accent-soft);
+  border-color: rgba(240, 140, 46, 0.6);
+  background: rgba(240, 140, 46, 0.12);
+}
+
+.footnote {
+  margin: 26px 0 0;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+}
+
+/* shop */
+.bank-line {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+
+.bank-line b {
+  color: var(--accent-soft);
+  font-size: 15px;
+}
+
+.skins {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.skin {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+}
+
+.skin.owned {
+  border-color: rgba(240, 140, 46, 0.4);
+}
+
+.skin.equipped {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(240, 140, 46, 0.35) inset;
+}
+
+.skin canvas {
+  image-rendering: pixelated;
+  width: 64px;
+  height: 64px;
+}
+
+.skin .name {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.skin .price {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.skin .price b {
+  color: #ffe066;
+}
+
+.skin button {
+  width: 100%;
+  padding: 7px;
+  border-radius: 4px;
+  border: 1px solid rgba(240, 140, 46, 0.5);
+  background: rgba(240, 140, 46, 0.14);
+  color: var(--accent-soft);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.skin button[disabled] {
+  opacity: 0.55;
+  cursor: default;
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+}
+
+/* ranks */
+.rank-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.rank-name input {
+  flex: 1;
+  max-width: 220px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+}
+
+.ranks {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.ranks th {
+  text-align: left;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.ranks td {
+  padding: 7px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ranks tr.me td {
+  color: var(--accent-soft);
+}
+
+.ranks tr:nth-child(1) td:first-child {
+  color: #ffe066;
+}
+
+.empty {
+  padding: 18px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* result block */
+.result {
+  margin: 18px auto 0;
+  max-width: 380px;
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 14px;
+  background: var(--panel);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.result-row b {
+  font-size: 16px;
+  color: var(--ink);
+}
+
+#over-eyebrow.new {
+  color: var(--green);
+}
+
+.rotate-hint {
+  display: none;
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+@media (max-width: 640px) {
+  .cols {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .hud-big {
+    font-size: 18px;
+  }
+  .meter {
+    width: 74%;
+  }
+  .menu.row {
+    grid-auto-flow: row;
+  }
+  .menu.row .btn {
+    min-width: min(320px, 84vw);
+  }
+}
+
+@media (orientation: portrait) and (max-width: 820px) {
+  .rotate-hint {
+    display: block;
+  }
+}
+
+</style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- ============================ game ============================ -->
+      <div id="stage">
+        <canvas id="game" width="480" height="270" aria-label="Block Jump game area"></canvas>
+
+        <div id="hud">
+          <div class="hud-row hud-top">
+            <div class="hud-cell">
+              <div class="hud-label">SCORE</div>
+              <div class="hud-big" id="hud-score">0</div>
+              <div class="hud-sub">BEST <span id="hud-best">0</span></div>
+            </div>
+            <div class="hud-cell hud-center">
+              <div class="hud-label">DISTANCE</div>
+              <div class="hud-mid"><span id="hud-blocks">0</span> BLK</div>
+              <div class="chips" id="hud-chips"></div>
+            </div>
+            <div class="hud-cell hud-right">
+              <div class="hud-label">STARS</div>
+              <div class="hud-big"><i class="star"></i><span id="hud-stars">0</span></div>
+              <div class="hud-sub">BANK <span id="hud-bank">0</span></div>
+            </div>
+          </div>
+
+          <div class="meter" id="hud-meter">
+            <div class="meter-track">
+              <div class="meter-window" id="meter-window"></div>
+              <div class="meter-fill" id="meter-fill"></div>
+              <div class="meter-marker" id="meter-marker"></div>
+            </div>
+            <div class="meter-hint" id="meter-hint">按住蓄力 · 松开起跳 &nbsp;/&nbsp; HOLD to charge · RELEASE to jump</div>
+          </div>
+
+          <div class="toast" id="hud-toast"></div>
+          <div class="floaters" id="hud-floaters"></div>
+          <button class="icon-btn pause no-jump" id="btn-pause" title="暂停 Pause">❚❚</button>
+        </div>
+      </div>
+
+      <div class="rotate-hint">横屏体验更佳 · Rotate for a wider view</div>
+
+      <!-- =========================== title ============================ -->
+      <section class="screen show" id="screen-title">
+        <div class="screen-inner center">
+          <p class="eyebrow">ORIGINAL PIXEL CASUAL GAME</p>
+          <h1 class="title">BLOCK JUMP</h1>
+          <p class="title-cn">方块跳跳</p>
+          <p class="tagline">One jump. One world. Push your reflexes to the limit.</p>
+          <p class="tagline cn">一跳一世界 · 挑战你的反应极限</p>
+          <div class="menu">
+            <button class="btn primary" data-action="play">开始游戏 <span>START</span></button>
+            <button class="btn" data-action="howto">怎么玩 <span>HOW TO PLAY</span></button>
+            <button class="btn" data-action="shop">商店 <span>SKINS</span></button>
+            <button class="btn" data-action="ranks">排行榜 <span>RANKS</span></button>
+          </div>
+          <div class="toggles" id="toggles-title"></div>
+          <p class="footnote">BLOCK JUMP · 一跳一世界</p>
+        </div>
+      </section>
+
+      <!-- =========================== how to ============================ -->
+      <section class="screen" id="screen-howto">
+        <div class="screen-inner">
+          <p class="eyebrow">04 / CONTROLS</p>
+          <h2 class="h2">How to play</h2>
+          <p class="h2-cn">怎么玩？</p>
+          <div class="cols">
+            <div class="col">
+              <h3 class="h3">PC · 电脑端</h3>
+              <div class="keys"><span class="key">Space</span><span class="key">Mouse Click</span></div>
+              <p class="body">
+                Press Space or click anywhere to charge, release to jump.<br />
+                按空格或鼠标点击，按住蓄力、松开出跳。
+              </p>
+            </div>
+            <div class="col">
+              <h3 class="h3">Mobile · 手机端</h3>
+              <div class="keys"><span class="key wide">Touch Tap</span></div>
+              <p class="body">
+                Tap anywhere on screen; long-press to charge, release to jump. One-hand friendly.<br />
+                手指点屏幕，长按蓄力、松开出跳，单手就能玩。
+              </p>
+            </div>
+          </div>
+          <div class="rule"></div>
+          <p class="eyebrow">02 / CORE GAMEPLAY</p>
+          <h2 class="h2">Three steps to get hooked</h2>
+          <p class="h2-cn">三步上手，一秒入坑</p>
+          <ol class="steps">
+            <li><b>1 Jump</b><span>按住蓄力，松手跳向下一个平台 · Tap and hold, release to leap</span></li>
+            <li><b>2 Dodge</b><span>躲开缺口与陷阱 · Time it — don't fall, don't hit traps</span></li>
+            <li><b>3 Collect</b><span>把路上的星星全吃掉 · Grab every star on the way</span></li>
+          </ol>
+          <p class="body muted">
+            落到哪里就从哪里起跳 —— 站在平台越靠右，下一跳就越轻松；贴着右侧边缘落下会判定
+            <b>PERFECT +50</b>。· You jump from exactly where you land, so landing further right makes the next
+            jump shorter. Land on the far edge for a PERFECT bonus.
+          </p>
+          <div class="rule"></div>
+          <p class="eyebrow">06 / COLLECTIBLES</p>
+          <h2 class="h2">Power-ups</h2>
+          <p class="h2-cn">道具</p>
+          <div class="cards">
+            <div class="card"><b>Shield · 护盾</b><span>抵挡一次失误 · Blocks one fall or crash</span></div>
+            <div class="card"><b>Boost · 加速</b><span>短时间跳得更远 · Jump farther, faster</span></div>
+            <div class="card"><b>Magnet · 磁铁</b><span>自动吸附星星 · Auto-collect nearby stars</span></div>
+          </div>
+          <p class="body muted">
+            星星既是分数，也能在商店解锁皮肤。 · Stars count toward your score and can be spent on new skins.
+            一直按住不会浪费：蓄力槽到顶后会回落，可以等移动平台靠过来再出跳。
+          </p>
+          <div class="menu row">
+            <button class="btn primary" data-action="play">开始游戏 <span>START</span></button>
+            <button class="btn" data-action="back">返回 <span>BACK</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================ shop ============================= -->
+      <section class="screen" id="screen-shop">
+        <div class="screen-inner">
+          <p class="eyebrow">07 / SKINS</p>
+          <h2 class="h2">Skins</h2>
+          <p class="h2-cn">皮肤 · 攒星星换新造型</p>
+          <p class="bank-line">可用星星 BANK <b id="shop-bank">0</b></p>
+          <div class="skins" id="shop-grid"></div>
+          <div class="menu row">
+            <button class="btn primary" data-action="play">开始游戏 <span>START</span></button>
+            <button class="btn" data-action="back">返回 <span>BACK</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================ ranks ============================ -->
+      <section class="screen" id="screen-ranks">
+        <div class="screen-inner">
+          <p class="eyebrow">08 / RANKS</p>
+          <h2 class="h2">Leaderboard</h2>
+          <p class="h2-cn">排行榜 · 本机记录</p>
+          <div class="rank-name">
+            <label for="input-name">名字 NAME</label>
+            <input id="input-name" maxlength="12" spellcheck="false" />
+          </div>
+          <table class="ranks" id="ranks-table">
+            <thead>
+              <tr><th>#</th><th>NAME</th><th>SCORE</th><th>BLK</th><th>★</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <p class="body muted">
+            本榜单保存在本机浏览器里（换浏览器或清理数据会重置）。全球排行榜需要接入服务端，接入位置见 README。
+          </p>
+          <div class="menu row">
+            <button class="btn primary" data-action="play">开始游戏 <span>START</span></button>
+            <button class="btn" data-action="back">返回 <span>BACK</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================ pause ============================ -->
+      <section class="screen dim" id="screen-pause">
+        <div class="screen-inner center">
+          <p class="eyebrow">PAUSED</p>
+          <h2 class="h2">暂停</h2>
+          <div class="menu">
+            <button class="btn primary" data-action="resume">继续 <span>RESUME</span></button>
+            <button class="btn" data-action="restart">重新开始 <span>RESTART</span></button>
+            <button class="btn" data-action="menu">返回主菜单 <span>MENU</span></button>
+          </div>
+          <div class="toggles" id="toggles-pause"></div>
+        </div>
+      </section>
+
+      <!-- =========================== game over ========================= -->
+      <section class="screen dim" id="screen-over">
+        <div class="screen-inner center">
+          <p class="eyebrow" id="over-eyebrow">RUN OVER</p>
+          <h2 class="h2" id="over-title">跳完了</h2>
+          <div class="result">
+            <div class="result-row"><span>SCORE</span><b id="over-score">0</b></div>
+            <div class="result-row"><span>DISTANCE</span><b id="over-blocks">0 BLK</b></div>
+            <div class="result-row"><span>STARS</span><b id="over-stars">0</b></div>
+            <div class="result-row"><span>PERFECT</span><b id="over-perfect">0</b></div>
+            <div class="result-row"><span>BEST</span><b id="over-best">0</b></div>
+            <div class="result-row"><span>LOCAL RANK</span><b id="over-rank">-</b></div>
+          </div>
+          <div class="menu row">
+            <button class="btn primary" data-action="restart">再来一局 <span>RETRY</span></button>
+            <button class="btn" data-action="menu">返回主菜单 <span>MENU</span></button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+/**
+ * Block Jump - tuning constants, palettes and skins.
+ *
+ * Pure data + math: loaded as a plain script in the browser and required
+ * by the Node simulation tests, so it must never touch the DOM.
+ */
+(function (global) {
+  "use strict";
+
+  var BJ = global.BJ || (global.BJ = {});
+
+  var DEG = Math.PI / 180;
+
+  BJ.CONFIG = {
+    /* Internal render resolution (the canvas is letterboxed up from this). */
+    view: { w: 480, h: 270 },
+
+    /* Fixed simulation step, in seconds. */
+    step: 1 / 60,
+
+    phys: {
+      gravity: 0.46, // px / step^2
+      angle: 64 * DEG, // launch angle, fixed - only the charge varies
+      v0Min: 4.6, // px / step at a tap
+      v0Max: 9.9, // px / step at a full 0.75s charge
+      chargeTime: 0.75, // seconds from tap to full charge
+      chargeEase: 0.8, // c^ease, keeps the low-charge end readable
+      /* Holding past a full charge lets the power meter swing back down, so a
+         player can wait for a moving platform without being stuck at maximum. */
+      chargePingPong: true,
+      maxFallSpeed: 8, // terminal velocity, px / step
+      landMargin: 2.5, // px of forgiveness at platform edges
+      hazardRadius: 6.5,
+      playerRadius: 6,
+      deathY: 340,
+      boostMul: 1.22, // jump speed multiplier while Boost is active
+      boostTime: 8, // seconds
+      invulnTime: 1.1, // seconds of invulnerability after a shield save
+      magnetTime: 8,
+      magnetRange: 92,
+      magnetPull: 0.55 // px / step^2 toward the player
+    },
+
+    world: {
+      groundY: 196, // default platform top surface
+      heights: [176, 188, 200, 212], // allowed top surfaces
+      maxStepUp: 26, // max height change between neighbouring platforms
+      platMinTiles: 2,
+      platMaxTiles: 6,
+      tile: 16,
+      gapMinEasy: 30,
+      gapMaxEasy: 64,
+      gapMinHard: 52,
+      gapMaxHard: 128,
+      rampFrom: 6, // platforms before difficulty starts to bite
+      rampLength: 56, // platforms to reach full difficulty
+      windowMin: 0.06, // narrowest acceptable charge window on a hazard jump
+      windowPlainMin: 0.045, // ... and on an empty jump
+      windowMoverMin: 0.11, // ... and when the landing platform itself moves
+      hazardFrom: 10,
+      moverFrom: 26,
+      crumbleFrom: 18,
+      breatherEvery: 16,
+      spawnX: 64
+    },
+
+    economy: {
+      scorePerBlock: 1,
+      scorePerStar: 25,
+      scorePerPerfect: 50,
+      perfectPx: 7 // land within this many px of the ledge
+    },
+
+    /* Character skins. Prices are in stars (the in-run currency). */
+    skins: [
+      { id: "orange", name: "橙子 Orange", price: 0, body: "#e08a3c", shade: "#a85f22", light: "#f6b56b", eye: "#2b1a0d" },
+      { id: "ice", name: "蓝冰 Ice", price: 150, body: "#5aa9e8", shade: "#2f6fa8", light: "#9ad4f6", eye: "#0e2130" },
+      { id: "leaf", name: "翠绿 Leaf", price: 300, body: "#66bb4a", shade: "#3d8a2c", light: "#a5e37f", eye: "#12240d" },
+      { id: "violet", name: "暗紫 Violet", price: 600, body: "#9a6ce0", shade: "#6a45a8", light: "#c6a4f6", eye: "#1c1030" },
+      { id: "gold", name: "黄金 Gold", price: 900, body: "#e8c247", shade: "#a8891f", light: "#fbe89a", eye: "#2e2306" },
+      { id: "sakura", name: "樱花 Sakura", price: 1400, body: "#f078a8", shade: "#b04a76", light: "#ffb6d0", eye: "#3a0d20" },
+      { id: "obsidian", name: "黑曜 Obsidian", price: 2000, body: "#3c3c4c", shade: "#23232e", light: "#5e5e74", eye: "#ff4d4d" },
+      { id: "rainbow", name: "彩虹 Rainbow", price: 3000, body: "#ff5a5a", shade: "#8a2a8a", light: "#ffe066", eye: "#101020", rainbow: true }
+    ],
+
+    /* Background themes, cycled as the run gets longer. */
+    biomes: [
+      {
+        id: "night",
+        name: "NIGHT",
+        sky: ["#080c17", "#101728", "#1b2540"],
+        star: "#ffe9a8",
+        cloud: "#1d2a45",
+        cloudLight: "#2a3b5e",
+        mountainFar: "#0b1220",
+        mountainNear: "#111b2e",
+        grass: "#6db32e",
+        grassLight: "#93d24d",
+        grassDark: "#417a1e",
+        dirt: "#8a5a2f",
+        dirtDark: "#5c3a1c",
+        cobble: "#4b505c",
+        cobbleDark: "#282c36"
+      },
+      {
+        id: "dusk",
+        name: "DUSK",
+        sky: ["#2a1c3c", "#8c3f4a", "#e08a4a"],
+        star: "#ffe0b0",
+        cloud: "#5a3352",
+        cloudLight: "#7d4a63",
+        mountainFar: "#3a2340",
+        mountainNear: "#241426",
+        grass: "#6fae2f",
+        grassLight: "#94cc4c",
+        grassDark: "#3f761d",
+        dirt: "#7d4f2a",
+        dirtDark: "#523218",
+        cobble: "#4a4550",
+        cobbleDark: "#2a2630"
+      },
+      {
+        id: "cave",
+        name: "CAVE",
+        sky: ["#100a20", "#1d1136", "#301c52"],
+        star: "#a9d8ff",
+        cloud: "#2b1c48",
+        cloudLight: "#3d2a63",
+        mountainFar: "#221541",
+        mountainNear: "#170e2c",
+        grass: "#4fa8a0",
+        grassLight: "#78d6cc",
+        grassDark: "#2d6f6a",
+        dirt: "#6a4a7a",
+        dirtDark: "#432e4e",
+        cobble: "#474056",
+        cobbleDark: "#262231"
+      }
+    ]
+  };
+
+  /**
+   * Jump maths. The launch angle is fixed, so every jump is fully described
+   * by its charge: charge -> take-off speed -> a single deterministic arc.
+   *
+   * The formulas below are the *closed form of the fixed-step integrator*
+   * used by the player (velocity first, then position, with a terminal
+   * velocity clamp), not a continuous-time approximation. That matters: the
+   * generator, the aim preview and the bot all have to predict exactly where
+   * a real jump lands, to the pixel and the step.
+   */
+  var Motion = {
+    cfg: function () {
+      return BJ.CONFIG.phys;
+    },
+
+    /* Charge in [0,1] -> take-off speed in px/step. */
+    v0For: function (c, mul) {
+      var p = BJ.CONFIG.phys;
+      c = c < 0 ? 0 : c > 1 ? 1 : c;
+      var e = Math.pow(c, p.chargeEase);
+      return (p.v0Min + (p.v0Max - p.v0Min) * e) * (mul || 1);
+    },
+
+    /* Take-off velocity components for a charge. */
+    velocityFor: function (c, mul) {
+      var p = BJ.CONFIG.phys;
+      var v0 = Motion.v0For(c, mul);
+      return { vx: v0 * Math.cos(p.angle), vy: -v0 * Math.sin(p.angle), v0: v0 };
+    },
+
+    /* Horizontal distance of a flat jump (exact, in steps). */
+    rangeFor: function (c, mul) {
+      return Motion.rangeSteps(c, mul) * Motion.velocityFor(c, mul).vx;
+    },
+
+    /* Height gained at the apex. */
+    peakFor: function (c, mul) {
+      var v = Motion.velocityFor(c, mul);
+      return Math.abs(Motion.yAt(Motion.arc(c, 0, 0, mul), Math.ceil(-v.vy / Motion.cfg().gravity)));
+    },
+
+    /**
+     * Build an arc starting at (x0, y0) - y0 is the bottom of the block.
+     */
+    arc: function (c, x0, y0, mul) {
+      var p = BJ.CONFIG.phys;
+      var v = Motion.velocityFor(c, mul);
+      return { x0: x0, y0: y0, vx: v.vx, vy: v.vy, g: p.gravity, maxFall: p.maxFallSpeed, c: c };
+    },
+
+    /* First step index at which the falling velocity starts being clamped. */
+    clampStep: function (arc) {
+      var m = Math.ceil((arc.maxFall - arc.vy) / arc.g);
+      return m < 1 ? 1 : m;
+    },
+
+    /* Bottom edge of the block after n steps. */
+    yAt: function (arc, n) {
+      if (n <= 0) return arc.y0;
+      var m = Motion.clampStep(arc);
+      if (n < m) return arc.y0 + n * arc.vy + 0.5 * arc.g * n * (n + 1);
+      var k = m - 1;
+      return arc.y0 + k * arc.vy + 0.5 * arc.g * k * (k + 1) + arc.maxFall * (n - k);
+    },
+
+    xAt: function (arc, n) {
+      return arc.x0 + arc.vx * n;
+    },
+
+    pointAt: function (arc, n) {
+      return { x: Motion.xAt(arc, n), y: Motion.yAt(arc, n) };
+    },
+
+    /* Step index at which the arc is at its highest point. */
+    apexStep: function (arc) {
+      var n = Math.ceil(-arc.vy / arc.g);
+      return n < 1 ? 1 : n;
+    },
+
+    /**
+     * First step index n > apexStep at which the arc is at or below surface
+     * y = targetY (descending crossing), or -1 if it never gets there.
+     */
+    stepsToSurface: function (arc, targetY) {
+      var dy = targetY - arc.y0;
+      var disc = arc.vy * arc.vy + 2 * arc.g * dy;
+      if (disc < 0) return -1;
+      var est = (-arc.vy + Math.sqrt(disc)) / arc.g;
+      var start = Math.max(Motion.apexStep(arc), Math.floor(est) - 4);
+      var end = Math.ceil(est) + 6;
+      for (var n = start; n <= end; n++) {
+        if (Motion.yAt(arc, n) >= targetY - 1e-9) return n;
+      }
+      return -1;
+    },
+
+    /* Steps of a flat jump (same height), for range maths. */
+    rangeSteps: function (c, mul) {
+      return Motion.stepsToSurface(Motion.arc(c, 0, 0, mul), 0);
+    },
+
+    /* Longest / shortest flat jump in px, used to sanity-check the tuning. */
+    flatRange: function (c, mul) {
+      return Motion.rangeFor(c, mul);
+    }
+  };
+
+  BJ.Motion = Motion;
+
+  /* Deterministic PRNG so runs and tests are reproducible from a seed. */
+  BJ.rng = function (seed) {
+    var a = (seed >>> 0) || 1;
+    return function () {
+      a |= 0;
+      a = (a + 0x6d2b79f5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+
+  BJ.lerp = function (a, b, t) {
+    return a + (b - a) * t;
+  };
+
+  BJ.clamp = function (v, lo, hi) {
+    return v < lo ? lo : v > hi ? hi : v;
+  };
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+    <script>
+/**
+ * Block Jump - procedural level generation.
+ *
+ * Every gap is validated at generation time with the same analytic solver the
+ * aim preview and the attract-mode bot use, so a level can never contain a
+ * jump that has no solution - "always one step within reach".
+ *
+ * Pure logic, no DOM, so the Node simulation tests can drive it directly.
+ */
+(function (global) {
+  "use strict";
+
+  var BJ = global.BJ || (global.BJ = {});
+  var M = BJ.Motion;
+  var lerp = BJ.lerp;
+  var clamp = BJ.clamp;
+
+  var HALF = 8; // half of the block sprite
+  var DT = 1 / 60;
+
+  /* Distance from a point to a segment - hazards that oscillate are treated
+     as their full sweep band, which makes validity phase-independent. */
+  function segDist(px, py, x0, y0, x1, y1) {
+    var dx = x1 - x0;
+    var dy = y1 - y0;
+    var len2 = dx * dx + dy * dy;
+    var t = 0;
+    if (len2 > 0) {
+      t = ((px - x0) * dx + (py - y0) * dy) / len2;
+      t = t < 0 ? 0 : t > 1 ? 1 : t;
+    }
+    return Math.hypot(px - (x0 + t * dx), py - (y0 + t * dy));
+  }
+
+  function hazardBand(h) {
+    if (h.axis === "y" && h.amp) return { x0: h.x, y0: h.y - h.amp, x1: h.x, y1: h.y + h.amp };
+    if (h.axis === "x" && h.amp) return { x0: h.x - h.amp, y0: h.y, x1: h.x + h.amp, y1: h.y };
+    return { x0: h.x, y0: h.y, x1: h.x, y1: h.y };
+  }
+
+  /**
+   * The places on a platform the block can be standing when it takes off.
+   * Since it lands wherever it likes and then stays put, a jump is only fair
+   * if every one of these positions has a usable solution - so the generator
+   * and the tests both sweep this exact list.
+   */
+  function jumpOffsets(plat, step) {
+    step = step || 4;
+    var out = [];
+    var last = plat.w - HALF;
+    for (var o = HALF; o < last; o += step) out.push(o);
+    out.push(last);
+    return out;
+  }
+
+  /**
+   * Is a jump fair from *every* place the block could be standing on `from`?
+   *
+   * The block lands wherever it likes and then stays put, so a level is only
+   * honest if each of those positions has a comfortable solution. Returns the
+   * solve for the far-left position (the hardest one) and for the middle
+   * position, which the generator uses to place pickups.
+   */
+  function validateJump(from, to, hazards, opts) {
+    opts = opts || {};
+    var cfg = BJ.CONFIG.world;
+    var isMover = to.type === "mover" && to.amp > 0;
+    var offs = opts.offsets || jumpOffsets(from, opts.offsetStep || (isMover ? 8 : 4));
+    /* The hardest standing spot keeps the comfy bar; every other spot only has
+       to be honestly playable, which is what keeps traps and moving platforms
+       common enough to matter. */
+    var need = hazards && hazards.length ? cfg.windowMin : cfg.windowPlainMin;
+    if (isMover) need = Math.max(need, cfg.windowMoverMin);
+    var restNeed = cfg.windowPlainMin;
+    var samples = opts.samples || 64;
+    var time = opts.time || 0;
+
+    function solveAt(offset, atTime) {
+      return Jump.solve(from, to, {
+        time: time,
+        atTime: atTime,
+        hazards: hazards || [],
+        needTime: 0.3,
+        samples: samples,
+        fromOffset: offset
+      });
+    }
+
+    /* Far-left standing spot, with a full phase sweep for moving targets. */
+    var worst = solveAt(offs[0]);
+    if (!worst.feasible || worst.window < need) return { ok: false, at: offs[0], reason: "window" };
+    if (isMover && worst.usable < 0.2) return { ok: false, at: offs[0], reason: "catch-time" };
+
+    var mid = offs[Math.floor((offs.length - 1) / 2)];
+    var ref = worst;
+    var phases = null;
+    if (isMover) {
+      var span = (2 * Math.PI) / to.omega;
+      phases = [0.25, 0.5, 0.75].map(function (f) {
+        return time + span * f;
+      });
+    }
+
+    /* Check the two extremes first: a layout that cannot work fails there, and
+       failing fast is what makes it affordable to try many trap placements. */
+    var order = [];
+    if (offs.length > 1) order.push(offs.length - 1);
+    for (var k = 1; k < offs.length - 1; k++) order.push(k);
+
+    for (var oi = 0; oi < order.length; oi++) {
+      var i = order[oi];
+      var list = phases || [null];
+      for (var j = 0; j < list.length; j++) {
+        var s = solveAt(offs[i], list[j] === null ? undefined : list[j]);
+        if (!s.feasible || s.window < restNeed) return { ok: false, at: offs[i], reason: "offset" };
+        if (offs[i] === mid && j === 0) ref = s;
+      }
+    }
+    return { ok: true, worst: worst, ref: ref, offsets: offs.length };
+  }
+
+  var Jump = {
+    half: HALF,
+    hazardBand: hazardBand,
+    offsets: jumpOffsets,
+    validate: function (from, to, hazards, opts) {
+      return validateJump(from, to, hazards, opts);
+    },
+
+    /**
+     * Solve the jump from platform `from` onto platform `to`.
+     *
+     * opts:
+     *   mul       boost multiplier on the take-off speed
+     *   samples   charge samples
+     *   time      world clock (seconds), used for moving platforms
+     *   hazards   obstacles that must be avoided
+     *   needTime  minimum duration of a usable take-off window for movers
+     *   atTime    solve for this exact take-off time only
+     *   fromOffset  where on the source platform the block is standing,
+     *               measured from its left edge (defaults to the far ledge)
+     */
+    solve: function (from, to, opts) {
+      opts = opts || {};
+      var p = BJ.CONFIG.phys;
+      var mul = opts.mul || 1;
+      var samples = opts.samples || 120;
+      var needTime = opts.needTime || 0;
+      var hazards = opts.hazards || [];
+      var time = opts.time || 0;
+      var fromOffset = opts.fromOffset === undefined ? from.w - HALF : clamp(opts.fromOffset, HALF, from.w - HALF);
+
+      var x0 = from.x + fromOffset;
+      var y0 = from.y;
+      var moving = to.type === "mover" && to.amp > 0;
+
+      /* Take-off times worth testing: a static target needs only one. */
+      var times = [0];
+      var phaseDt = 0.05;
+      if (opts.atTime !== undefined && opts.atTime !== null) {
+        times = [opts.atTime];
+        phaseDt = 1 / 60;
+      } else if (moving) {
+        times = [];
+        var span = (2 * Math.PI) / to.omega;
+        var nPhase = clamp(Math.round(span / phaseDt), 12, 56);
+        phaseDt = span / nPhase;
+        for (var i = 0; i <= nPhase; i++) times.push(time + i * phaseDt);
+      }
+
+      /* A moving platform under the player's feet shifts the take-off point,
+         so the launch x has to be recomputed for every take-off time. */
+      var srcMoving = from.type === "mover" && from.amp > 0;
+      function sourceXAt(t) {
+        return srcMoving ? from.baseX + from.amp * Math.sin(from.omega * t + from.phase) + fromOffset : x0;
+      }
+
+      var windows = []; // {t0, cMin, cMax, len}
+
+      for (var ti = 0; ti < times.length; ti++) {
+        var t0 = times[ti];
+        var runStart = -1;
+        var xs = sourceXAt(t0);
+
+        for (var s = 0; s <= samples; s++) {
+          var c = s / samples;
+          var arc = M.arc(c, xs, y0, mul);
+          var nLand = M.stepsToSurface(arc, to.y);
+          var ok = nLand > 0;
+
+          if (ok) {
+            var landX = M.xAt(arc, nLand);
+            var toX = to.baseX + (moving ? to.amp * Math.sin(to.omega * (t0 + nLand * DT) + to.phase) : 0);
+            ok = landX >= toX + p.landMargin && landX <= toX + to.w - p.landMargin;
+
+            /* Never launch into the side wall of a taller platform. */
+            if (ok && to.y < y0) {
+              var nEdge = Math.ceil((toX - arc.x0) / arc.vx);
+              if (nEdge > 0 && nEdge < nLand && M.yAt(arc, nEdge) > to.y + p.landMargin) ok = false;
+            }
+
+            /* Obstacles must leave a way through. */
+            if (ok && hazards.length) {
+              /* Slack covers both the sampling spacing and the fact that a
+                 moving platform's take-off point can shift by a frame. */
+              var clear = p.hazardRadius + p.playerRadius + 4;
+              for (var h = 0; h < hazards.length && ok; h++) {
+                var band = hazardBand(hazards[h]);
+                for (var k = 1; k <= 26; k++) {
+                  var pt = M.pointAt(arc, Math.max(1, Math.round((nLand * k) / 26)));
+                  /* pt is the bottom of the block; collisions are tested
+                     against its centre. */
+                  if (segDist(pt.x, pt.y - HALF, band.x0, band.y0, band.x1, band.y1) < clear) {
+                    ok = false;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+
+          if (ok) {
+            if (runStart < 0) runStart = c;
+          } else if (runStart >= 0) {
+            windows.push({ t0: t0, cMin: runStart, cMax: (s - 1) / samples, len: (s - 1) / samples - runStart });
+            runStart = -1;
+          }
+        }
+        if (runStart >= 0) windows.push({ t0: t0, cMin: runStart, cMax: 1, len: 1 - runStart });
+      }
+
+      if (!windows.length) return { feasible: false, window: 0 };
+
+      var bestWin = windows[0];
+      for (var v = 1; v < windows.length; v++) {
+        if (windows[v].len > bestWin.len + 1e-6) bestWin = windows[v];
+      }
+
+      var t0Chosen = bestWin.t0;
+      var usable = 0;
+      if (moving) {
+        /* A moving platform is catchable only during part of its cycle. Keep
+           the take-off times inside a stretch that lasts long enough to be
+           playable, and among those pick the one with the widest charge
+           window - the easiest moment, reached by simply waiting. */
+        var hasAt = {};
+        for (var b = 0; b < windows.length; b++) hasAt[windows[b].t0.toFixed(4)] = true;
+
+        var runMin = Math.max(needTime, 0.2);
+        var runs = [];
+        var run = 0;
+        var runStartT = times[0];
+        for (var q = 0; q < times.length; q++) {
+          if (hasAt[times[q].toFixed(4)]) {
+            if (run === 0) runStartT = times[q];
+            run += phaseDt;
+          } else {
+            if (run > 0) runs.push({ start: runStartT, len: run });
+            run = 0;
+          }
+        }
+        if (run > 0) runs.push({ start: runStartT, len: run });
+
+        var pick = null;
+        for (var r = 0; r < runs.length; r++) {
+          if (runs[r].len < runMin) continue;
+          for (var wi = 0; wi < windows.length; wi++) {
+            var ww = windows[wi];
+            if (ww.t0 < runs[r].start - 1e-6 || ww.t0 > runs[r].start + runs[r].len + 1e-6) continue;
+            if (!pick || ww.len > pick.win.len + 1e-6) {
+              pick = { win: ww, run: runs[r], t0: ww.t0 };
+            }
+          }
+        }
+        if (pick) {
+          t0Chosen = pick.t0;
+          usable = pick.run.len;
+        } else {
+          /* Nothing comfortable exists: report the best we have so the
+             generator can reject this layout. */
+          var widest = 0;
+          for (var wq = 0; wq < runs.length; wq++) widest = Math.max(widest, runs[wq].len);
+          usable = widest;
+          t0Chosen = bestWin.t0;
+        }
+      }
+
+      var at = null;
+      for (var w = 0; w < windows.length; w++) {
+        if (Math.abs(windows[w].t0 - t0Chosen) < 1e-6 && (!at || windows[w].len > at.len)) at = windows[w];
+      }
+      if (!at) at = bestWin;
+
+      /* The comfortable charge is the middle of the window. */
+      var cMid = (at.cMin + at.cMax) / 2;
+      var xMid = sourceXAt(t0Chosen);
+      var arcMid = M.arc(cMid, xMid, y0, mul);
+      var nMid = M.stepsToSurface(arcMid, to.y);
+
+      return {
+        feasible: true,
+        window: at.len,
+        cMin: at.cMin,
+        cMax: at.cMax,
+        charge: cMid,
+        nLand: nMid,
+        steps: nMid,
+        landX: M.xAt(arcMid, nMid),
+        wait: moving ? t0Chosen - time : 0,
+        usable: usable,
+        takeoffX: xMid,
+        takeoffY: y0,
+        fromOffset: fromOffset,
+        takeoffTime: moving ? t0Chosen : time
+      };
+    },
+
+    /* Arc for a given charge from a platform's ledge. */
+    arcFrom: function (from, c, mul) {
+      return M.arc(c, from.x + from.w - HALF, from.y, mul);
+    }
+  };
+
+  var World = {
+    Jump: Jump,
+    validateJump: validateJump,
+
+    /**
+     * Create a world. `seed` makes a run reproducible, which is what the
+     * simulation tests rely on.
+     */
+    create: function (seed, opts) {
+      opts = opts || {};
+      var w = BJ.CONFIG.world;
+      var rnd = BJ.rng(seed || 1);
+
+      var world = {
+        seed: seed,
+        rng: rnd,
+        time: 0,
+        plats: [],
+        base: 0, /* index (i) of plats[0] */
+        stats: { hazards: 0, movers: 0, crumbles: 0, stars: 0, powerups: 0, fallbacks: 0 },
+        onCrumble: opts.onCrumble || null
+      };
+
+      world.difficulty = function (i) {
+        return clamp((i - w.rampFrom) / w.rampLength, 0, 1);
+      };
+
+      world.plats.push({
+        i: 0,
+        x: w.spawnX,
+        baseX: w.spawnX,
+        y: w.groundY,
+        w: 5 * w.tile,
+        gap: 0,
+        type: "solid",
+        amp: 0,
+        omega: 0,
+        phase: 0,
+        crumbleTime: 1,
+        crumbleT: -1,
+        gone: false,
+        stars: [],
+        powerup: null,
+        hazards: [],
+        solved: null
+      });
+
+      world.last = function () {
+        return world.plats[world.plats.length - 1];
+      };
+
+      /* Platform by absolute index - safe across pruning. */
+      world.at = function (i) {
+        var k = i - world.base;
+        return k >= 0 && k < world.plats.length ? world.plats[k] : null;
+      };
+
+      /* Make sure platform `i` exists. */
+      world.ensure = function (i) {
+        var guard = 0;
+        while (world.last().i < i && guard++ < 2000) {
+          world.plats.push(world.makeNext());
+        }
+      };
+
+      world.makeNext = function () {
+        var prev = world.last();
+        var i = prev.i + 1;
+        var d = world.difficulty(i);
+        var breather = i % w.breatherEvery === 0;
+
+        var allowHazard = !breather && i >= w.hazardFrom;
+        var allowMover = !breather && i >= w.moverFrom;
+        var allowCrumble = !breather && i >= w.crumbleFrom;
+
+        /* A crumbling ledge leaves no room to wait, so the jump after it is
+           always a short, empty, solid one. */
+        var afterCrumble = prev.type === "crumble";
+        if (afterCrumble) {
+          allowHazard = false;
+          allowMover = false;
+          allowCrumble = false;
+        }
+
+        var cand = null;
+        var solved = null;
+        var refSolve = null;
+
+        /* The block jumps from wherever it landed, so the level has to be
+           solvable from every spot it could be standing on this platform. */
+        var validate = function (to, hazards, opts) {
+          opts = opts || {};
+          var res = validateJump(prev, to, hazards || [], {
+            time: world.time,
+            samples: opts.samples || 64,
+            offsetStep: opts.offsetStep
+          });
+          if (res.ok) {
+            solved = res.worst;
+            refSolve = res.ref;
+          }
+          return res.ok;
+        };
+
+        /* Screening pass: a coarser sweep over standing positions, used inside
+           the retry loops. Anything that survives it is confirmed at full
+           resolution before it is kept. */
+        var screen = function (to, hazards) {
+          /* three spots only: the far left, the middle and the far right, which
+             is where these jumps break */
+          var spots = [HALF, prev.w / 2, prev.w - HALF];
+          return validate(to, hazards, { samples: 36, offsets: spots });
+        };
+        var confirm = function (to, hazards) {
+          return validate(to, hazards, { samples: 72, offsetStep: 4 });
+        };
+        /* Longest horizontal reach of a full charge, minus the distance the
+           block already has to cover to its own right edge. */
+        var gapCap = Math.max(26, BJ.Motion.rangeFor(1, 1) - 12 - (prev.w - HALF));
+
+        /* Step 1: place the platform itself, with no obstacles in the way.
+           Reroll the layout if it cannot be jumped at all. */
+        for (var attempt = 0; attempt < 12 && !(solved && solved.feasible); attempt++) {
+          var ease = attempt / 12; /* progressively retreat to a kind jump */
+          var tiles = Math.round(lerp(5, 2.4, d) + (rnd() * 1.5 - 0.6));
+          var gap = lerp(lerp(w.gapMinEasy, w.gapMinHard, d), lerp(w.gapMaxEasy, w.gapMaxHard, d), rnd());
+
+          /* Rhythm: follow a long jump with a shorter one. */
+          if (prev.gap > lerp(w.gapMaxEasy, w.gapMaxHard, world.difficulty(i - 1)) * 0.82) gap *= 0.72;
+          if (afterCrumble) gap *= 0.62;
+          if (breather) {
+            tiles = 6;
+            gap *= 0.6;
+          }
+          gap *= 1 - ease * 0.5;
+          tiles = Math.min(6, Math.round(tiles + ease * 2));
+          /* a wider platform gives the block a longer run-up, so it can only
+             afford a shorter gap */
+          gap = Math.min(gap, gapCap);
+
+          var y = prev.y;
+          if (rnd() < 0.5) {
+            var options = w.heights.filter(function (h) {
+              return Math.abs(h - prev.y) <= w.maxStepUp;
+            });
+            y = options[Math.floor(rnd() * options.length) % options.length];
+          }
+
+          var type = "solid";
+          if (allowMover && rnd() < lerp(0, 0.22, d)) type = "mover";
+          else if (allowCrumble && rnd() < lerp(0.04, 0.2, d)) type = "crumble";
+          if (ease > 0.45) type = "solid";
+
+          cand = {
+            i: i,
+            x: prev.x + prev.w + gap,
+            baseX: prev.x + prev.w + gap,
+            y: y,
+            w: clamp(tiles, w.platMinTiles, w.platMaxTiles) * w.tile,
+            gap: gap,
+            type: type,
+            amp: 0,
+            omega: 0,
+            phase: rnd() * Math.PI * 2,
+            crumbleTime: lerp(1.15, 0.85, d),
+            crumbleT: -1,
+            gone: false,
+            stars: [],
+            powerup: null,
+            hazards: [],
+            solved: null
+          };
+
+          if (type === "mover") {
+            cand.amp = lerp(14, 26, d);
+            cand.omega = 1.5 + rnd() * 0.5;
+          }
+
+          if (!screen(cand, [])) {
+            solved = { feasible: false };
+          }
+        }
+
+        /* The layout survived a coarse pass; confirm it at full resolution
+           before anything is placed on it. */
+        if (solved && solved.feasible && !confirm(cand, [])) {
+          solved = { feasible: false };
+        }
+
+        /* Step 2: drop obstacles into the gap and keep only placements that
+           still leave a fair way through from every standing position. */
+        if (solved && solved.feasible && allowHazard && rnd() < lerp(0.16, 0.62, d)) {
+          var gapStart = prev.x + prev.w;
+          var gapLen = cand.baseX - gapStart;
+          if (gapLen >= 46) {
+            var tries = 0;
+            var kept = null;
+            while (tries++ < 18 && !kept) {
+              var set = [];
+              var count = rnd() < lerp(0.12, 0.32, d) ? 2 : 1;
+              for (var hi = 0; hi < count; hi++) {
+                var lane = (gapLen - 34) / count;
+                /* walk the placement across the gap instead of re-rolling it:
+                   each try is a genuinely different geometry */
+                var across = ((tries - 1) % 6) / 5;
+                var hx = gapStart + 18 + (gapLen - 34) * (0.16 + 0.68 * across) + rnd() * 6;
+                hx += lane * hi;
+                hx = clamp(hx, gapStart + 18, gapStart + gapLen - 16);
+                var axis = rnd() < 0.55 ? "y" : "x";
+                var amp = axis === "y" ? lerp(9, 18, rnd()) : lerp(8, 15, rnd());
+                set.push({
+                  x: hx,
+                  /* Heights sweep upward as well: a low obstacle blocks the
+                     flat arcs used from a standing spot near the right edge,
+                     a high one blocks the long arcs from the far left. Some
+                     height in between leaves room to thread past. */
+                  y: Math.min(prev.y, cand.y) - (22 + ((tries - 1) % 5) * 9 + rnd() * 8),
+                  axis: axis,
+                  amp: amp,
+                  omega: 0.9 + rnd() * 0.7,
+                  phase: rnd() * Math.PI * 2,
+                  spin: rnd() < 0.5 ? 1 : -1,
+                  kind: rnd() < 0.5 ? "ball" : "saw"
+                });
+              }
+              if (screen(cand, set) && confirm(cand, set)) {
+                /* ... and it must not spoil the jump that lands on `prev`. */
+                var back = prev.i > 0 ? world.at(prev.i - 1) : null;
+                var okBack = true;
+                if (back) {
+                  okBack =
+                    validateJump(back, prev, set, {
+                      time: world.time,
+                      samples: 36,
+                      offsets: [HALF, back.w / 2, back.w - HALF]
+                    }).ok && validateJump(back, prev, set, { time: world.time, samples: 72 }).ok;
+                }
+                if (okBack) kept = set;
+              }
+            }
+            if (kept) {
+              cand.hazards = kept;
+              validate(cand, kept, { samples: 88 }); /* re-solve with the obstacles in place */
+            }
+          }
+        }
+
+        if (!solved || !solved.feasible) {
+          /* Guaranteed fallback: short, wide, empty jump. */
+          cand.x = cand.baseX = prev.x + prev.w + lerp(30, 44, d);
+          cand.gap = cand.x - (prev.x + prev.w);
+          cand.y = prev.y;
+          cand.w = 6 * w.tile;
+          cand.type = "solid";
+          cand.amp = 0;
+          cand.hazards = [];
+          if (!validate(cand, [], { samples: 96 })) {
+            solved = Jump.solve(prev, cand, { time: world.time, samples: 96, fromOffset: HALF });
+            world.stats.fallbacks++;
+          }
+        }
+
+        cand.solved = solved;
+        if (cand.type === "mover") world.stats.movers++;
+        if (cand.type === "crumble") world.stats.crumbles++;
+        world.stats.hazards += cand.hazards.length;
+
+        /* Stars ride a comfortable arc from the middle of the platform, which
+           is where the block most often comes down. */
+        var ref = refSolve;
+        if (!ref.feasible) ref = solved;
+        var arc = M.arc(ref.charge, ref.takeoffX, ref.takeoffY, 1);
+        var nLand = ref.nLand;
+        var nStars = cand.hazards.length ? (rnd() < 0.5 ? 1 : 2) : rnd() < 0.35 ? 3 : rnd() < 0.75 ? 2 : 1;
+        if (breather) nStars = 3;
+        var fracs = nStars === 1 ? [0.55] : nStars === 2 ? [0.4, 0.68] : [0.32, 0.52, 0.72];
+        for (var si = 0; si < nStars; si++) {
+          var pt = M.pointAt(arc, Math.max(1, Math.round(nLand * fracs[si])));
+          cand.stars.push({ x: pt.x, y: pt.y - 5, taken: false, bob: rnd() * Math.PI * 2 });
+          world.stats.stars++;
+        }
+
+        /* Power-ups: rare, always sitting on a reachable arc. */
+        if (i >= 8 && rnd() < 0.09) {
+          var roll = rnd();
+          var kind = roll < 0.42 ? "shield" : roll < 0.72 ? "magnet" : "boost";
+          var pu = M.pointAt(arc, Math.max(1, Math.round(nLand * 0.5)));
+          cand.powerup = { x: pu.x, y: pu.y - 6, kind: kind, taken: false, bob: rnd() * Math.PI * 2 };
+          world.stats.powerups++;
+        }
+
+        return cand;
+      };
+
+      /* Advance world objects. `player` is needed for the magnet pull. */
+      world.update = function (dt, player) {
+        world.time += dt;
+        var magnet = player && player.magnetT > 0 && player.state !== "dead";
+
+        for (var i = 0; i < world.plats.length; i++) {
+          var pl = world.plats[i];
+          if (pl.type === "mover") pl.x = pl.baseX + pl.amp * Math.sin(pl.omega * world.time + pl.phase);
+
+          if (pl.hazards.length) {
+            for (var h = 0; h < pl.hazards.length; h++) {
+              var hz = pl.hazards[h];
+              var o = hz.amp ? hz.amp * Math.sin(hz.omega * world.time + hz.phase) : 0;
+              hz.cx = hz.x + (hz.axis === "x" ? o : 0);
+              hz.cy = hz.y + (hz.axis === "y" ? o : 0);
+            }
+          }
+
+          if (pl.type === "crumble" && pl.crumbleT >= 0 && !pl.gone) {
+            pl.crumbleT += dt;
+            if (pl.crumbleT >= pl.crumbleTime) {
+              pl.gone = true;
+              if (world.onCrumble) world.onCrumble(pl);
+            }
+          }
+
+          if (magnet) {
+            for (var s = 0; s < pl.stars.length; s++) {
+              var st = pl.stars[s];
+              if (st.taken) continue;
+              pull(st, player, BJ.CONFIG.phys.magnetPull);
+            }
+            if (pl.powerup && !pl.powerup.taken) pull(pl.powerup, player, BJ.CONFIG.phys.magnetPull * 0.7);
+          }
+        }
+      };
+
+      function pull(obj, player, force) {
+        var dx = player.x - obj.x;
+        var dy = player.y - 8 - obj.y;
+        var dist = Math.hypot(dx, dy);
+        if (dist < BJ.CONFIG.phys.magnetRange && dist > 0.001) {
+          var f = force * clamp(1 - dist / BJ.CONFIG.phys.magnetRange, 0.15, 1);
+          obj.x += (dx / dist) * f;
+          obj.y += (dy / dist) * f;
+        }
+      }
+
+      /* Drop platforms well behind the camera. */
+      world.prune = function (cameraX) {
+        while (world.plats.length > 24 && world.plats[1].x + world.plats[1].w < cameraX - 160) {
+          world.plats.shift();
+          world.base = world.plats[0].i;
+        }
+      };
+
+      world.planJump = function (plat, opts) {
+        opts = opts || {};
+        world.ensure(plat.i + 1);
+        var next = world.at(plat.i + 1);
+        if (!next) return { feasible: false };
+        return Jump.solve(plat, next, {
+          time: world.time,
+          atTime: opts.atTime,
+          hazards: next.hazards,
+          needTime: 0.28,
+          samples: opts.samples || 160,
+          mul: opts.mul || 1,
+          /* caller knows where the block is standing; falling back to the far
+             left keeps the answer conservative */
+          fromOffset: opts.fromOffset === undefined ? HALF : opts.fromOffset
+        });
+      };
+
+      return world;
+    }
+  };
+
+  BJ.World = World;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+    <script>
+/**
+ * Block Jump - player state machine and physics.
+ *
+ * The loop is deliberately narrow: land, hold to charge, release to jump. The
+ * launch angle is fixed, so the charge is the only decision - and the block
+ * jumps from exactly where it landed, which is why the arc preview, the level
+ * generator and the attract-mode bot can share one maths model.
+ *
+ * Pure logic - no DOM.
+ */
+(function (global) {
+  "use strict";
+
+  var BJ = global.BJ || (global.BJ = {});
+  var M = BJ.Motion;
+  var P = BJ.CONFIG.phys;
+  var clamp = BJ.clamp;
+  var HALF = 8;
+  var BODY_H = 16;
+
+  var Player = {
+    create: function (opts) {
+      opts = opts || {};
+      var p = {
+        half: HALF,
+        h: BODY_H,
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        state: "idle",
+        plat: null,
+        charge: 0,
+        chargeStart: 0,
+        shield: 0,
+        boostT: 0,
+        magnetT: 0,
+        invulnT: 0,
+        squash: 0,
+        lean: 0,
+        anim: 0,
+        stars: 0,
+        perfects: 0,
+        startX: 0,
+        bestX: 0,
+        jumps: 0,
+
+        boostMul: function () {
+          return p.boostT > 0 ? P.boostMul : 1;
+        },
+        blocks: function () {
+          return Math.max(0, Math.floor((p.bestX - p.startX) / BJ.CONFIG.world.tile));
+        },
+        reset: function (plat) {
+          p.plat = plat;
+          p.offset = plat.w - HALF; /* where it stands, from the platform's left edge */
+          p.x = plat.x + p.offset;
+          p.y = plat.y;
+          p.vx = 0;
+          p.vy = 0;
+          p.state = "idle";
+          p.charge = 0;
+          p.shield = 0;
+          p.boostT = 0;
+          p.magnetT = 0;
+          p.invulnT = 0;
+          p.squash = 0;
+          p.lean = 0;
+          p.stars = 0;
+          p.perfects = 0;
+          p.jumps = 0;
+          p.startX = p.x;
+          p.bestX = p.x;
+        },
+        /* Ride the platform: while grounded the block keeps its offset, so a
+           moving platform carries it along. */
+        settle: function () {
+          if (!p.plat) return;
+          p.offset = clamp(p.offset, HALF, p.plat.w - HALF);
+          p.x = p.plat.x + p.offset;
+        },
+        /* 0..1 power meter at time t, given the moment charging started. */
+        chargeAt: function (t) {
+          var cyc = (t - p.chargeStart) / P.chargeTime;
+          if (cyc < 0) return 0;
+          if (!P.chargePingPong) return clamp(cyc, 0, 1);
+          var phase = cyc % 2;
+          return phase <= 1 ? phase : 2 - phase;
+        },
+        /* Arc the player would fly right now, for the aim aid. */
+        previewArc: function (c) {
+          return M.arc(c === undefined ? (p.state === "charge" ? p.charge : 0) : c, p.x, p.y, p.boostMul());
+        }
+      };
+
+      p.reset(opts.plat);
+      return p;
+    },
+
+    /**
+     * Advance one fixed step.
+     *   input: { held, pressed, released }
+     *   cb:    optional hooks for juice and scoring
+     */
+    update: function (p, dt, world, input, cb) {
+      cb = cb || {};
+      p.anim += dt;
+
+      if (p.invulnT > 0) p.invulnT = Math.max(0, p.invulnT - dt);
+      if (p.boostT > 0) p.boostT = Math.max(0, p.boostT - dt);
+      if (p.magnetT > 0) p.magnetT = Math.max(0, p.magnetT - dt);
+
+      if (p.state === "dead") {
+        p.vy = Math.min(p.vy + P.gravity, P.maxFallSpeed);
+        p.y += p.vy;
+        if (cb.onDead && p.y > P.deathY) cb.onDead();
+        return;
+      }
+
+      /* ---- grounded: charge from wherever the block came down ---- */
+      if (p.state === "idle") {
+        /* The platform we were standing on just crumbled away. */
+        if (p.plat && p.plat.gone) {
+          p.state = "air";
+          p.vx = 0;
+          p.vy = 1;
+          p.plat = null;
+          if (cb.onLedgeGone) cb.onLedgeGone();
+          return;
+        }
+        p.settle();
+        p.squash = Math.max(0, p.squash - dt * 4);
+        if (input.held) {
+          p.state = "charge";
+          p.charge = 0;
+          p.chargeStart = world.time;
+        }
+      }
+
+      /* ---- charging ---- */
+      if (p.state === "charge") {
+        if (p.plat) {
+          if (p.plat.gone) {
+            p.plat = null;
+            p.state = "air";
+            p.vx = 0;
+            p.vy = 1;
+            if (cb.onLedgeGone) cb.onLedgeGone();
+            return;
+          }
+          p.settle();
+        }
+        p.charge = p.chargeAt(world.time);
+        p.squash = p.charge;
+        if (!input.held) {
+          var v = M.velocityFor(p.charge, p.boostMul());
+          p.vx = v.vx;
+          p.vy = v.vy;
+          p.state = "air";
+          p.jumps++;
+          p.squash = 0;
+          if (cb.onJump) cb.onJump(p.charge);
+        }
+        return;
+      }
+
+      /* ---- airborne ---- */
+      if (p.state !== "air") return;
+
+      var px = p.x;
+      var py = p.y;
+      p.vy = Math.min(p.vy + P.gravity, P.maxFallSpeed);
+      p.x += p.vx;
+      p.y += p.vy;
+      p.lean = clamp(p.vx / 6, -1, 1);
+      if (p.bestX < p.x) p.bestX = p.x;
+
+      for (var s = 1; s <= 3; s++) {
+        var ft = s / 3;
+        var sx = px + (p.x - px) * ft;
+        var sy = py + (p.y - py) * ft - BODY_H / 2;
+        collectPickups(p, world, sx, sy, cb);
+        if (hazardHit(p, world, sx, sy, cb)) return;
+      }
+
+      /* ---- landing ---- */
+      if (p.vy > 0) {
+        var target = null;
+        for (var i = 0; i < world.plats.length; i++) {
+          var pl = world.plats[i];
+          if (pl.gone) continue;
+          if (pl.y < py - 0.001 || pl.y > p.y + 0.001) continue;
+          if (p.x < pl.x - P.landMargin || p.x > pl.x + pl.w + P.landMargin) continue;
+          if (!target || pl.y < target.y) target = pl;
+        }
+        if (target) {
+          p.plat = target;
+          /* stay exactly where it came down; the 2.5px landing margin is
+             folded back in so the block never hangs off an edge */
+          p.offset = clamp(p.x - target.x, HALF, target.w - HALF);
+          p.x = target.x + p.offset;
+          p.y = target.y;
+          p.vx = 0;
+          p.vy = 0;
+          p.lean = 0;
+          p.squash = 1;
+          p.state = "idle";
+          var off = target.w - HALF - p.offset;
+          if (target.type === "crumble" && target.crumbleT < 0) {
+            target.crumbleT = 0;
+            if (cb.onCrumbleStart) cb.onCrumbleStart(target);
+          }
+          if (off <= BJ.CONFIG.economy.perfectPx) {
+            p.perfects++;
+            if (cb.onPerfect) cb.onPerfect(target);
+          }
+          if (cb.onLand) cb.onLand(target, off);
+          return;
+        }
+      }
+
+      /* ---- shield saves a fall, once ---- */
+      if (p.shield > 0 && p.vy > 0 && p.plat && p.y > p.plat.y + 26) {
+        p.shield--;
+        p.invulnT = P.invulnTime;
+        p.settle();
+        p.y = p.plat.y;
+        p.vx = 0;
+        p.vy = 0;
+        p.state = "idle";
+        if (cb.onShieldSave) cb.onShieldSave("fall");
+        return;
+      }
+
+      if (p.y > P.deathY) {
+        p.state = "dead";
+        p.vy = Math.min(p.vy, 4);
+        if (cb.onDeath) cb.onDeath("void");
+      }
+    },
+
+    /* Charge window for the platform the player is standing on. */
+    plan: function (p, world) {
+      if (!p.plat) return null;
+      return world.planJump(p.plat, { mul: p.boostMul(), fromOffset: p.offset });
+    },
+
+    /**
+     * One button pressed by a machine: the same decision a player makes.
+     * Drives the attract-mode demo on the title screen (and the sim tests).
+     *   opts.time  take-off time the decision applies to (defaults to now)
+     *   opts.aim   "mid" (default) releases inside the window, "early" at its
+     *              low edge
+     */
+    botInput: function (p, world, opts) {
+      opts = opts || {};
+      if (p.state === "idle") return true;
+      if (p.state !== "charge" || !p.plat) return false;
+      var plan = world.planJump(p.plat, {
+        mul: p.boostMul(),
+        samples: opts.samples || 96,
+        atTime: opts.time === undefined ? world.time : opts.time,
+        fromOffset: p.offset
+      });
+      if (!plan.feasible) return true; /* hold and wait for the moment */
+      if (opts.aim === "early") return !(p.charge >= plan.cMin && p.charge <= plan.cMax);
+      var mid = (plan.cMin + plan.cMax) / 2;
+      return !(p.charge >= mid && p.charge <= plan.cMax);
+    },
+
+    /* Score = distance + stars + clean landings. */
+    score: function (p) {
+      var e = BJ.CONFIG.economy;
+      return p.blocks() * e.scorePerBlock + p.stars * e.scorePerStar + p.perfects * e.scorePerPerfect;
+    }
+  };
+
+  function collectPickups(p, world, sx, sy, cb) {
+    for (var i = 0; i < world.plats.length; i++) {
+      var pl = world.plats[i];
+      if (pl.gone) continue;
+      for (var s = 0; s < pl.stars.length; s++) {
+        var st = pl.stars[s];
+        if (st.taken) continue;
+        if (Math.abs(st.x - sx) < 10 && Math.abs(st.y - sy) < 11) {
+          st.taken = true;
+          p.stars++;
+          if (cb.onStar) cb.onStar(st);
+        }
+      }
+      var pu = pl.powerup;
+      if (pu && !pu.taken && Math.abs(pu.x - sx) < 11 && Math.abs(pu.y - sy) < 12) {
+        pu.taken = true;
+        if (pu.kind === "shield") p.shield = Math.min(2, p.shield + 1);
+        if (pu.kind === "boost") p.boostT = P.boostTime;
+        if (pu.kind === "magnet") p.magnetT = P.magnetTime;
+        if (cb.onPower) cb.onPower(pu.kind);
+      }
+    }
+  }
+
+  function hazardHit(p, world, sx, sy, cb) {
+    if (p.invulnT > 0) return false;
+    var reach = P.hazardRadius + P.playerRadius;
+    for (var i = 0; i < world.plats.length; i++) {
+      var pl = world.plats[i];
+      if (pl.gone || !pl.hazards.length) continue;
+      for (var h = 0; h < pl.hazards.length; h++) {
+        var hz = pl.hazards[h];
+        var hx = hz.cx === undefined ? hz.x : hz.cx;
+        var hy = hz.cy === undefined ? hz.y : hz.cy;
+        if (Math.hypot(hx - sx, hy - sy) < reach) {
+          if (p.shield > 0) {
+            p.shield--;
+            p.invulnT = P.invulnTime;
+            if (cb.onShieldSave) cb.onShieldSave("crash");
+            return false;
+          }
+          p.state = "dead";
+          p.vy = Math.min(p.vy, 2);
+          if (cb.onDeath) cb.onDeath("hazard");
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  BJ.Player = Player;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+    <script>
+/**
+ * Block Jump - procedural pixel art.
+ *
+ * Everything is baked once into small offscreen canvases from code, so the
+ * game ships as a handful of text files with no binary assets. Sprites are
+ * authored on an explicit pixel grid: no smoothing, no sub-pixel drawing.
+ */
+(function (global) {
+  "use strict";
+
+  var BJ = global.BJ;
+  var C = BJ.CONFIG;
+
+  function make(w, h) {
+    var c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    var g = c.getContext("2d");
+    g.imageSmoothingEnabled = false;
+    return { c: c, g: g };
+  }
+
+  function rgb(color) {
+    return [parseInt(color.slice(1, 3), 16), parseInt(color.slice(3, 5), 16), parseInt(color.slice(5, 7), 16)];
+  }
+
+  function toHex(arr) {
+    return (
+      "#" +
+      arr
+        .map(function (v) {
+          return Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
+        })
+        .join("")
+    );
+  }
+
+  /* Positive amount lightens, negative darkens. */
+  function shade(color, amount) {
+    var a = rgb(color);
+    return toHex(
+      a.map(function (v) {
+        return amount >= 0 ? v + (255 - v) * amount : v * (1 + amount);
+      })
+    );
+  }
+
+  /* ------------------------------------------------------------------ block */
+
+  /* The little block. Frames: 0 idle, 1/2 walk, 3 airborne, 4 crashed. */
+  function buildBlock(skin) {
+    var legsFor = [
+      [[3, 12], [10, 12]],
+      [[2, 12], [10, 11]],
+      [[4, 11], [11, 12]],
+      [[3, 11], [10, 11]],
+      [[2, 13], [11, 13]]
+    ];
+    var sprites = [];
+
+    for (var f = 0; f < legsFor.length; f++) {
+      var s = make(16, 16);
+      var g = s.g;
+      var crashed = f === 4;
+
+      /* arms */
+      g.fillStyle = skin.shade;
+      g.fillRect(1, 6, 1, 4);
+      g.fillRect(14, 6, 1, 4);
+      g.fillStyle = skin.light;
+      g.fillRect(1, 5, 1, 1);
+      g.fillRect(14, 5, 1, 1);
+
+      /* body: 12x12 with clipped corners */
+      g.fillStyle = skin.shade;
+      g.fillRect(3, 0, 10, 1);
+      g.fillRect(2, 1, 12, 10);
+      g.fillRect(3, 11, 10, 1);
+      g.fillStyle = skin.body;
+      g.fillRect(3, 1, 10, 10);
+      /* bevel */
+      g.fillStyle = skin.light;
+      g.fillRect(3, 1, 10, 1);
+      g.fillRect(3, 2, 1, 9);
+      g.fillStyle = skin.shade;
+      g.fillRect(3, 10, 10, 1);
+      g.fillRect(12, 2, 1, 9);
+      g.fillStyle = shade(skin.body, -0.22);
+      g.fillRect(10, 9, 2, 1);
+
+      /* face */
+      g.fillStyle = skin.eye;
+      if (crashed) {
+        [[4, 4], [6, 4], [5, 5], [4, 6], [6, 6], [9, 4], [11, 4], [10, 5], [9, 6], [11, 6], [7, 8], [8, 8], [7, 9], [8, 9]].forEach(
+          function (p) {
+            g.fillRect(p[0], p[1], 1, 1);
+          }
+        );
+      } else {
+        g.fillRect(4, 4, 2, 3);
+        g.fillRect(9, 4, 2, 3);
+        g.fillStyle = "#ffffff";
+        g.fillRect(4, 4, 1, 1);
+        g.fillRect(9, 4, 1, 1);
+        g.fillStyle = skin.eye;
+        g.fillRect(6, 9, 3, 1);
+      }
+
+      /* legs */
+      var legs = legsFor[f];
+      g.fillStyle = skin.shade;
+      g.fillRect(legs[0][0], legs[0][1], 3, 4);
+      g.fillRect(legs[1][0], legs[1][1], 3, 4);
+      g.fillStyle = skin.body;
+      g.fillRect(legs[0][0], legs[0][1], 3, 3);
+      g.fillRect(legs[1][0], legs[1][1], 3, 3);
+      g.fillStyle = skin.light;
+      g.fillRect(legs[0][0], legs[0][1], 1, 2);
+      g.fillRect(legs[1][0], legs[1][1], 1, 2);
+
+      sprites.push(s.c);
+    }
+    return sprites;
+  }
+
+  /* ----------------------------------------------------------------- extras */
+
+  /* 1px darker rim on the bottom and right edges of whatever is opaque. */
+  function bevel(s, dark) {
+    var g = s.g;
+    var w = s.c.width;
+    var h = s.c.height;
+    var px = g.getImageData(0, 0, w, h).data;
+    var out = [];
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        if (px[(y * w + x) * 4 + 3] === 0) continue;
+        var rightEmpty = x + 1 >= w || px[(y * w + x + 1) * 4 + 3] === 0;
+        var downEmpty = y + 1 >= h || px[((y + 1) * w + x) * 4 + 3] === 0;
+        if (rightEmpty || downEmpty) out.push(x, y);
+      }
+    }
+    g.fillStyle = dark;
+    for (var i = 0; i < out.length; i += 2) g.fillRect(out[i], out[i + 1], 1, 1);
+    return s.c;
+  }
+
+  function buildStar() {
+    var s = make(8, 8);
+    var g = s.g;
+    var rows = ["...##...", "...##...", ".######.", "########", ".######.", "..####..", "...##...", "...##..."];
+    g.fillStyle = "#ffe066";
+    rows.forEach(function (r, y) {
+      for (var x = 0; x < r.length; x++) if (r[x] === "#") g.fillRect(x, y, 1, 1);
+    });
+    return bevel(s, "#d99a1e");
+  }
+
+  /* Spinning spiked ball / saw blade: one mask, four quarter-turn frames. */
+  function buildHazard(spin) {
+    var s = make(12, 12);
+    var g = s.g;
+    g.fillStyle = "#98a2b4";
+    for (var y = 0; y < 12; y++) {
+      for (var x = 0; x < 12; x++) {
+        if ((x - 5.5) * (x - 5.5) + (y - 5.5) * (y - 5.5) <= 11.5) g.fillRect(x, y, 1, 1);
+      }
+    }
+    var arms = [
+      [[5, 0], [6, 0], [5, 1], [6, 1]],
+      [[10, 5], [10, 6], [9, 5], [9, 6]],
+      [[5, 10], [6, 10], [5, 9], [6, 9]],
+      [[0, 5], [0, 6], [1, 5], [1, 6]]
+    ];
+    for (var k = 0; k < 4; k++) {
+      var a = arms[(k + spin) % 4];
+      g.fillStyle = "#c2cbd8";
+      for (var i = 0; i < a.length; i++) g.fillRect(a[i][0], a[i][1], 1, 1);
+    }
+    g.fillStyle = "#e3e9f2";
+    g.fillRect(4, 4, 2, 1);
+    g.fillRect(4, 4, 1, 2);
+    g.fillStyle = "#3d4351";
+    g.fillRect(5, 5, 2, 2);
+    return s.c;
+  }
+
+  function buildPowerup(kind) {
+    var s = make(12, 12);
+    var g = s.g;
+    var cols = {
+      shield: ["#3f7fe0", "#1f4a94"],
+      boost: ["#e2683c", "#9a3a18"],
+      magnet: ["#3fae63", "#1f7040"]
+    }[kind];
+    g.fillStyle = cols[1];
+    g.fillRect(1, 1, 10, 10);
+    g.fillStyle = cols[0];
+    g.fillRect(1, 1, 9, 9);
+    g.fillStyle = shade(cols[0], 0.4);
+    g.fillRect(1, 1, 9, 1);
+    g.fillRect(1, 1, 1, 9);
+    var glyph = {
+      shield: ["..####..", ".##..##.", "##....##", "##....##", "##....##", ".##..##.", "..####..", "...##..."],
+      boost: ["...##...", "..###...", ".#####..", "###..##.", "...##...", "..##....", ".##.....", "##......"],
+      magnet: ["..####..", ".#....#.", "#......#", "#......#", "#......#", "#......#", "#......#", "#......#"]
+    }[kind];
+    g.fillStyle = "#ffffff";
+    glyph.forEach(function (r, y) {
+      for (var x = 0; x < r.length; x++) if (r[x] === "#") g.fillRect(2 + x, 2 + y, 1, 1);
+    });
+    return s.c;
+  }
+
+  /* ------------------------------------------------------------------ tiles */
+
+  function tileRng(a, b) {
+    var x = Math.sin(a * 12.9898 + b * 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  function buildGrass(variant, biome) {
+    var s = make(16, 16);
+    var g = s.g;
+    g.fillStyle = biome.dirt;
+    g.fillRect(0, 0, 16, 16);
+    for (var i = 0; i < 14; i++) {
+      var x = Math.floor(tileRng(variant * 37 + i, 3) * 16);
+      var y = 5 + Math.floor(tileRng(variant * 91 + i * 7, 11) * 10);
+      g.fillStyle = biome.dirtDark;
+      g.fillRect(x, y, 1 + (i % 2), 1);
+    }
+    g.fillStyle = biome.grassDark;
+    g.fillRect(0, 4, 16, 1);
+    g.fillStyle = biome.grass;
+    g.fillRect(0, 2, 16, 2);
+    g.fillStyle = biome.grassLight;
+    g.fillRect(0, 0, 16, 2);
+    for (var k = 0; k < 16; k++) {
+      var n = tileRng(variant * 13 + k, 7);
+      if (n > 0.74) {
+        g.fillStyle = biome.grassLight;
+        g.fillRect(k, 0, 1, 3);
+      } else if (n < 0.18) {
+        g.fillStyle = biome.grassDark;
+        g.fillRect(k, 3, 1, 1);
+      }
+    }
+    g.fillStyle = shade(biome.dirtDark, -0.3);
+    g.fillRect(0, 15, 16, 1);
+    return s.c;
+  }
+
+  function buildDirt(variant, biome) {
+    var s = make(16, 16);
+    var g = s.g;
+    g.fillStyle = biome.dirt;
+    g.fillRect(0, 0, 16, 16);
+    for (var i = 0; i < 18; i++) {
+      var x = Math.floor(tileRng(variant * 53 + i * 3, 5) * 16);
+      var y = Math.floor(tileRng(variant * 71 + i * 5, 9) * 16);
+      g.fillStyle = tileRng(i * 11 + variant, 13) > 0.5 ? biome.dirtDark : shade(biome.dirt, 0.12);
+      g.fillRect(x, y, 2, 1);
+    }
+    g.fillStyle = shade(biome.dirtDark, -0.25);
+    g.fillRect(0, 15, 16, 1);
+    return s.c;
+  }
+
+  function buildCobble(variant, biome) {
+    var s = make(16, 16);
+    var g = s.g;
+    g.fillStyle = biome.cobbleDark;
+    g.fillRect(0, 0, 16, 16);
+    function stone(x, y, w, h) {
+      g.fillStyle = biome.cobble;
+      g.fillRect(x, y, w, h);
+      g.fillStyle = shade(biome.cobble, 0.22);
+      g.fillRect(x, y, w, 1);
+      g.fillRect(x, y, 1, h);
+      g.fillStyle = shade(biome.cobble, -0.3);
+      g.fillRect(x, y + h - 1, w, 1);
+      g.fillRect(x + w - 1, y, 1, h);
+    }
+    var off = variant % 2 ? 0 : 7;
+    stone(0, 0, 7, 7);
+    stone(8, 0, 8, 7);
+    stone(off, 8, 8, 7);
+    stone(off + 9 > 16 ? 16 : off + 9, 8, 8, 7);
+    if (off === 0) {
+      g.fillStyle = biome.cobbleDark;
+      g.fillRect(7, 8, 1, 7);
+    }
+    return s.c;
+  }
+
+  function buildCloud(variant, biome) {
+    var s = make(28, 12);
+    var g = s.g;
+    g.fillStyle = biome.cloud;
+    [
+      [4, 5, 20, 5],
+      [7, 3, 12, 3],
+      [10 - variant, 1, 6, 3],
+      [2, 7, 24, 3]
+    ].forEach(function (b) {
+      g.fillRect(b[0], b[1], b[2], b[3]);
+    });
+    g.fillStyle = biome.cloudLight;
+    g.fillRect(8 + variant * 3, 2, 6, 1);
+    g.fillRect(6 + variant * 2, 6, 10, 1);
+    g.fillStyle = shade(biome.cloud, -0.25);
+    g.fillRect(2, 9, 24, 1);
+    return s.c;
+  }
+
+  /* Jagged mountain silhouette, 256 wide, tiled horizontally. */
+  function buildMountains(biome, layer) {
+    var W = 256;
+    var H = 64;
+    var s = make(W, H);
+    var g = s.g;
+    var r = BJ.rng(layer * 7717 + 913);
+    var fill = layer === 0 ? biome.mountainFar : biome.mountainNear;
+    g.fillStyle = fill;
+    var peaks = layer === 0 ? 3 : 2;
+    for (var p = 0; p < peaks; p++) {
+      var cx = ((p + 0.5) / peaks) * W + (r() * 22 - 11);
+      var hgt = (layer === 0 ? 42 : 30) + r() * 16;
+      var half = (layer === 0 ? 46 : 62) + r() * 18;
+      for (var x = Math.floor(cx - half); x <= cx + half; x++) {
+        var t = 1 - Math.abs(x - cx) / half;
+        var y = Math.floor(H - hgt * Math.pow(Math.max(0, t), 0.85));
+        g.fillRect((x + W) % W, y, 1, H - y);
+      }
+    }
+    /* rim light along the silhouette top */
+    var px = g.getImageData(0, 0, W, H).data;
+    var edges = [];
+    for (var x2 = 0; x2 < W; x2++) {
+      for (var y2 = 0; y2 < H; y2++) {
+        var i = (y2 * W + x2) * 4 + 3;
+        if (px[i] > 0 && (y2 === 0 || px[((y2 - 1) * W + x2) * 4 + 3] === 0)) edges.push(x2, y2);
+      }
+    }
+    g.fillStyle = shade(fill, 0.16);
+    for (var e = 0; e < edges.length; e += 2) g.fillRect(edges[e], edges[e + 1], 1, 2);
+    return s.c;
+  }
+
+  /* ------------------------------------------------------------------ cache */
+
+  var cache = { ready: false, block: [], grass: [], dirt: [], cobble: [], cloud: [], mountains: {} };
+
+  function buildAll() {
+    if (cache.ready) return;
+    C.skins.forEach(function (skin) {
+      cache.block.push(buildBlock(skin));
+    });
+    C.biomes.forEach(function (biome) {
+      var gv = [];
+      var dv = [];
+      var cv = [];
+      var cl = [];
+      for (var v = 0; v < 4; v++) {
+        gv.push(buildGrass(v, biome));
+        dv.push(buildDirt(v, biome));
+        cv.push(buildCobble(v, biome));
+      }
+      for (var c = 0; c < 3; c++) cl.push(buildCloud(c, biome));
+      cache.grass.push(gv);
+      cache.dirt.push(dv);
+      cache.cobble.push(cv);
+      cache.cloud.push(cl);
+      cache.mountains[biome.id] = [buildMountains(biome, 0), buildMountains(biome, 1)];
+    });
+    cache.star = buildStar();
+    cache.hazard = [0, 1, 2, 3].map(buildHazard);
+    cache.powerup = {
+      shield: buildPowerup("shield"),
+      boost: buildPowerup("boost"),
+      magnet: buildPowerup("magnet")
+    };
+    cache.ready = true;
+  }
+
+  var Pixel = {
+    init: buildAll,
+    shade: shade,
+    make: make,
+    block: function (skinIdx, frame) {
+      buildAll();
+      var arr = cache.block[skinIdx % cache.block.length];
+      return arr[Math.abs(frame) % arr.length];
+    },
+    grass: function (biomeIdx, variant) {
+      buildAll();
+      return cache.grass[biomeIdx % cache.grass.length][variant % 4];
+    },
+    dirt: function (biomeIdx, variant) {
+      buildAll();
+      return cache.dirt[biomeIdx % cache.dirt.length][variant % 4];
+    },
+    cobble: function (biomeIdx, variant) {
+      buildAll();
+      return cache.cobble[biomeIdx % cache.cobble.length][variant % 4];
+    },
+    cloud: function (biomeIdx, variant) {
+      buildAll();
+      return cache.cloud[biomeIdx % cache.cloud.length][variant % 3];
+    },
+    mountains: function (biomeId, layer) {
+      buildAll();
+      return cache.mountains[biomeId][layer];
+    },
+    star: function () {
+      buildAll();
+      return cache.star;
+    },
+    hazard: function (frame) {
+      buildAll();
+      return cache.hazard[frame % 4];
+    },
+    powerup: function (kind) {
+      buildAll();
+      return cache.powerup[kind];
+    },
+    previewBlock: function (skinIdx, size) {
+      buildAll();
+      var src = Pixel.block(skinIdx, 0);
+      var s = make(size, size);
+      s.g.drawImage(src, 0, 0, 16, 16, 0, 0, size, size);
+      return s.c;
+    }
+  };
+
+  BJ.Pixel = Pixel;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+    <script>
+/**
+ * Block Jump - canvas renderer.
+ *
+ * Draws the world into a fixed 480x270 buffer (the canvas element scales that
+ * up with nearest-neighbour filtering). The HUD and menus are DOM, so this
+ * file is only about the game picture: parallax backdrops, islands, obstacles,
+ * the block, particles and the aim arc.
+ */
+(function (global) {
+  "use strict";
+
+  var BJ = global.BJ;
+  var C = BJ.CONFIG;
+  var P = BJ.Pixel;
+  var VIEW = C.view;
+  var TILE = C.world.tile;
+
+  function rgb(c) {
+    return [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+  }
+  function mix(a, b, t) {
+    var x = rgb(a);
+    var y = rgb(b);
+    return (
+      "#" +
+      x
+        .map(function (v, i) {
+          return Math.round(v + (y[i] - v) * t)
+            .toString(16)
+            .padStart(2, "0");
+        })
+        .join("")
+    );
+  }
+  function hash(a, b) {
+    var x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  var Renderer = {
+    create: function (canvas) {
+      var ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+
+      var skyStars = [];
+      var r = BJ.rng(1337);
+      for (var i = 0; i < 90; i++) {
+        skyStars.push({ x: r() * 900, y: r() * 150, s: r() < 0.2 ? 2 : 1, p: r() * 6.28 });
+      }
+      var cloudSpots = [];
+      for (var c = 0; c < 14; c++) {
+        cloudSpots.push({ x: r() * 1400, y: 18 + r() * 90, v: Math.floor(r() * 3), s: 0.6 + r() * 0.8 });
+      }
+
+      function drawSky(g) {
+        var biomes = C.biomes;
+        var a = biomes[g.biomeA % biomes.length];
+        var b = biomes[g.biomeB % biomes.length];
+        var t = g.biomeT;
+        var bands = 14;
+        for (var i2 = 0; i2 < bands; i2++) {
+          var f = i2 / (bands - 1);
+          var top = Math.round(f * VIEW.h);
+          var h = Math.ceil(VIEW.h / bands) + 1;
+          /* three-stop gradient, quantised into bands for the retro look */
+          var colA = f < 0.5 ? mix(a.sky[0], a.sky[1], f * 2) : mix(a.sky[1], a.sky[2], (f - 0.5) * 2);
+          var colB = f < 0.5 ? mix(b.sky[0], b.sky[1], f * 2) : mix(b.sky[1], b.sky[2], (f - 0.5) * 2);
+          ctx.fillStyle = mix(colA, colB, t);
+          ctx.fillRect(0, top, VIEW.w, h);
+        }
+
+        /* stars */
+        var starCol = mix(a.star, b.star, t);
+        for (var s = 0; s < skyStars.length; s++) {
+          var st = skyStars[s];
+          var x = st.x - g.camX * 0.06;
+          x = ((x % 900) + 900) % 900;
+          if (x > VIEW.w + 4) continue;
+          var tw = 0.45 + 0.55 * Math.abs(Math.sin(g.time * 1.5 + st.p));
+          ctx.globalAlpha = tw;
+          ctx.fillStyle = starCol;
+          ctx.fillRect(Math.round(x), Math.round(st.y), st.s, st.s);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function drawParallax(g) {
+        var biomes = C.biomes;
+        var a = biomes[g.biomeA % biomes.length].id;
+        var b = biomes[g.biomeB % biomes.length].id;
+        var t = g.biomeT;
+
+        function layer(biomeId, layerIdx, factor, yBottom, alpha) {
+          var img = P.mountains(biomeId, layerIdx);
+          var w = img.width;
+          var off = ((-g.camX * factor) % w + w) % w;
+          ctx.globalAlpha = alpha;
+          for (var x = -off; x < VIEW.w; x += w) ctx.drawImage(img, Math.round(x), yBottom - img.height);
+          ctx.globalAlpha = 1;
+        }
+
+        ctx.globalAlpha = 1;
+        layer(a, 0, 0.1, 210, 1);
+        if (t > 0) layer(b, 0, 0.1, 210, t);
+
+        /* clouds */
+        var ci = Math.floor(g.biomeA) % biomes.length;
+        for (var i = 0; i < cloudSpots.length; i++) {
+          var cs = cloudSpots[i];
+          var x = cs.x - g.camX * 0.22 + g.time * 4;
+          x = ((x % 1400) + 1400) % 1400;
+          if (x > VIEW.w + 30) continue;
+          ctx.globalAlpha = 0.9;
+          ctx.drawImage(P.cloud(ci, cs.v), Math.round(x), Math.round(cs.y + Math.sin(g.time * 0.4 + cs.x) * 2));
+        }
+        ctx.globalAlpha = 1;
+
+        layer(a, 1, 0.3, 236, 1);
+        if (t > 0) layer(b, 1, 0.3, 236, t);
+      }
+
+      function drawIsland(g, pl) {
+        var biome = Math.floor(g.biomeA) % C.biomes.length;
+        var top = Math.round(pl.y);
+        var left = Math.round(pl.x);
+        var w = pl.w;
+        var cols = Math.ceil(w / TILE);
+        var shake = 0;
+        if (pl.type === "crumble" && pl.crumbleT >= 0 && !pl.gone) {
+          shake = Math.sin(pl.crumbleT * 42) * Math.min(2, pl.crumbleT * 3);
+        }
+        var ox = left + (shake ? Math.round(shake) : 0);
+        /* culling is in camera space: the context is already translated */
+        var sx = ox - g.camX;
+        if (sx > VIEW.w + 48 || sx + w < -48) return;
+
+        /* grass cap */
+        for (var i = 0; i < cols; i++) {
+          var x = ox + i * TILE;
+          var cw = Math.min(TILE, ox + w - x);
+          var img = P.grass(biome, Math.floor((x / TILE) * 1.7 + pl.i * 0.37));
+          ctx.drawImage(img, 0, 0, cw, TILE, x, top, cw, TILE);
+        }
+        /* dirt + cobble body */
+        for (var row = 0; row < 4; row++) {
+          for (var j = 0; j < cols; j++) {
+            var xx = ox + j * TILE;
+            var ww = Math.min(TILE, ox + w - xx);
+            var ragged = row === 3 && hash(Math.floor(xx / TILE), pl.i * 3 + row) < 0.34;
+            if (ragged) continue;
+            var tile =
+              row === 0
+                ? P.dirt(biome, Math.floor(hash(j, pl.i) * 4))
+                : P.cobble(biome, Math.floor(hash(j * 2.1, pl.i + row) * 4));
+            ctx.drawImage(tile, 0, 0, ww, TILE, xx, top + TILE * (row + 1), ww, TILE);
+          }
+        }
+        /* shadow under the island */
+        ctx.fillStyle = "rgba(0,0,0,0.25)";
+        ctx.fillRect(ox + 2, top + TILE * 5, w - 4, 2);
+
+        /* cracks once it starts to fall */
+        if (pl.type === "crumble" && pl.crumbleT >= 0) {
+          var k = Math.min(1, pl.crumbleT / pl.crumbleTime);
+          ctx.fillStyle = "rgba(20,10,4," + (0.35 + 0.5 * k) + ")";
+          for (var m = 0; m < 5; m++) {
+            var cx = ox + 6 + m * (w - 12) / 4;
+            ctx.fillRect(Math.round(cx), top + 3, 2, 3 + (m % 3) * 2);
+            ctx.fillRect(Math.round(cx) - 2, top + 8 + (m % 2) * 3, 2, 3);
+          }
+        }
+        /* moving platforms get little end caps so the motion reads */
+        if (pl.type === "mover") {
+          ctx.fillStyle = "rgba(255,255,255,0.16)";
+          ctx.fillRect(ox - 3, top + 6, 2, 3);
+          ctx.fillRect(ox + w + 1, top + 6, 2, 3);
+        }
+      }
+
+      function drawHazards(g, pl) {
+        for (var i = 0; i < pl.hazards.length; i++) {
+          var h = pl.hazards[i];
+          var x = h.cx === undefined ? h.x : h.cx;
+          var y = h.cy === undefined ? h.y : h.cy;
+          var hx2 = x - g.camX;
+          if (hx2 < -20 || hx2 > VIEW.w + 20) continue;
+          var frame = Math.floor((g.time * 9 * h.spin + i) % 4);
+          var img = P.hazard(((frame % 4) + 4) % 4);
+          ctx.drawImage(img, Math.round(x - 6), Math.round(y - 6));
+        }
+      }
+
+      function drawPickups(g, pl) {
+        for (var i = 0; i < pl.stars.length; i++) {
+          var st = pl.stars[i];
+          if (st.taken) continue;
+          var bob = Math.sin(g.time * 3 + st.bob) * 1.6;
+          var x = Math.round(st.x - 4);
+          var y = Math.round(st.y - 4 + bob);
+          var sx = x - g.camX;
+          if (sx < -10 || sx > VIEW.w + 10) continue;
+          ctx.globalAlpha = 0.28;
+          ctx.fillStyle = "#ffe066";
+          ctx.fillRect(x - 1, y - 1, 10, 10);
+          ctx.globalAlpha = 1;
+          ctx.drawImage(P.star(), x, y);
+        }
+        var pu = pl.powerup;
+        if (pu && !pu.taken) {
+          var pb = Math.sin(g.time * 2.4 + pu.bob) * 2;
+          var px = Math.round(pu.x - 6);
+          var py = Math.round(pu.y - 6 + pb);
+          var spx = px - g.camX;
+          if (spx > -14 && spx < VIEW.w + 14) {
+            ctx.globalAlpha = 0.22 + 0.12 * Math.sin(g.time * 5);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(px - 3, py - 3, 18, 18);
+            ctx.globalAlpha = 1;
+            ctx.drawImage(P.powerup(pu.kind), px, py);
+          }
+        }
+      }
+
+      function drawTrail(g) {
+        var p = g.player;
+        if (p.state !== "air" || !g.trail) return;
+        for (var i = 0; i < g.trail.length; i++) {
+          var t = g.trail[i];
+          var a = (i + 1) / g.trail.length;
+          ctx.globalAlpha = 0.18 * a;
+          ctx.drawImage(P.block(g.skinIdx, 3), Math.round(t.x - 8), Math.round(t.y - 16));
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function drawPlayer(g) {
+        var p = g.player;
+        if (!p) return;
+        if (p.invulnT > 0 && Math.floor(g.time * 20) % 2 === 0) return;
+
+        var frame = 0;
+        if (p.state === "air") frame = 3;
+        if (p.state === "dead") frame = 4;
+        if (p.state === "charge") frame = 0;
+
+        var img = P.block(g.skinIdx, frame);
+        var squash = p.squash || 0;
+        var sx = 1 + squash * 0.22;
+        var sy = 1 - squash * 0.2;
+        if (p.state === "air") {
+          var st = Math.min(0.12, Math.abs(p.vy) * 0.014);
+          sx = 1 - st;
+          sy = 1 + st;
+        }
+        var w = 16 * sx;
+        var h = 16 * sy;
+        var x = p.x - w / 2;
+        var y = p.y - h;
+
+        /* shadow on the platform below */
+        if (p.plat && !p.plat.gone) {
+          ctx.globalAlpha = 0.22;
+          ctx.fillStyle = "#000000";
+          var sw = 12;
+          ctx.fillRect(Math.round(p.x - sw / 2), Math.round(p.plat.y + 1), sw, 2);
+          ctx.globalAlpha = 1;
+        }
+
+        ctx.drawImage(img, 0, 0, 16, 16, Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+
+        /* a blink every few seconds, so a standing block still feels alive */
+        if ((p.state === "idle" || p.state === "charge") && g.time % 3.2 < 0.09) {
+          ctx.fillStyle = C.skins[g.skinIdx % C.skins.length].eye;
+          ctx.fillRect(
+            Math.round(x + w * 0.25),
+            Math.round(y + h * 0.25),
+            Math.max(1, Math.round(w * 0.45)),
+            Math.max(1, Math.round(h * 0.12))
+          );
+        }
+
+        /* magnet / boost auras */
+        if (p.magnetT > 0) {
+          ctx.strokeStyle = "rgba(63,174,99," + (0.35 + 0.2 * Math.sin(g.time * 8)) + ")";
+          ctx.lineWidth = 1;
+          var rr = 20 + Math.sin(g.time * 4) * 2;
+          ctx.beginPath();
+          ctx.arc(Math.round(p.x) + 0.5, Math.round(p.y - 8) + 0.5, rr, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if (p.boostT > 0) {
+          ctx.fillStyle = "rgba(226,104,60,0.5)";
+          for (var b = 0; b < 3; b++) {
+            var bx = Math.round(p.x - 10 - b * 4 - (g.time * 90) % 12);
+            ctx.fillRect(bx, Math.round(p.y - 10 + (b % 2) * 4), 3, 2);
+          }
+        }
+        if (p.shield > 0) {
+          ctx.strokeStyle = "rgba(120,190,255,0.85)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(Math.round(p.x) + 0.5, Math.round(p.y - 8) + 0.5, 13, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      /* Dotted preview of where this charge sends you, plus the landing mark. */
+      function drawAim(g) {
+        if (!g.aid || !g.player || !g.plan) return;
+        var p = g.player;
+        if (p.state !== "charge" && p.state !== "idle") return;
+        var charge = p.state === "charge" ? p.charge : 0;
+        var arc = p.previewArc(charge);
+        var plan = g.plan;
+        var inside = plan.feasible && charge >= plan.cMin && charge <= plan.cMax;
+        var col = inside ? "#7ee081" : "#ffd166";
+        var nMid = plan.feasible ? plan.nLand : 0;
+        var steps = nMid || 34;
+        ctx.fillStyle = col;
+        for (var n = 4; n <= steps; n += 4) {
+          var pt = BJ.Motion.pointAt(arc, n);
+          if (pt.x > VIEW.w + 6) break;
+          ctx.globalAlpha = 0.75;
+          ctx.fillRect(Math.round(pt.x), Math.round(pt.y - 8), 2, 2);
+        }
+        ctx.globalAlpha = 1;
+        /* landing marker */
+        var lx = plan.feasible ? plan.landX : BJ.Motion.xAt(arc, steps);
+        var next = g.world && g.world.at(p.plat.i + 1);
+        if (plan.feasible && next) {
+          var ly = next.y;
+          ctx.fillStyle = inside ? "#7ee081" : "#ffd166";
+          ctx.fillRect(Math.round(lx) - 4, Math.round(ly) - 2, 9, 2);
+          ctx.fillRect(Math.round(lx) - 2, Math.round(ly) - 4, 5, 2);
+        }
+      }
+
+      function drawParticles(g) {
+        for (var i = 0; i < g.particles.length; i++) {
+          var p = g.particles[i];
+          var a = Math.max(0, Math.min(1, p.life / p.maxLife));
+          ctx.globalAlpha = a;
+          ctx.fillStyle = p.color;
+          ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function frame(g) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, VIEW.w, VIEW.h);
+
+        var shake = g.shake || 0;
+        var ox = shake ? Math.round((Math.random() - 0.5) * shake) : 0;
+        var oy = shake ? Math.round((Math.random() - 0.5) * shake) : 0;
+        ctx.translate(ox, oy);
+
+        /* backdrop: screen space, parallax applied by hand */
+        drawSky(g);
+        drawParallax(g);
+
+        /* world: scroll with the camera */
+        ctx.save();
+        ctx.translate(-Math.round(g.camX), 0);
+
+        var plats = g.world.plats;
+        for (var i = 0; i < plats.length; i++) {
+          if (!plats[i].gone) drawIsland(g, plats[i]);
+        }
+        for (var h = 0; h < plats.length; h++) {
+          if (!plats[h].gone && plats[h].hazards.length) drawHazards(g, plats[h]);
+        }
+        for (var s = 0; s < plats.length; s++) {
+          if (!plats[s].gone && (plats[s].stars.length || plats[s].powerup)) drawPickups(g, plats[s]);
+        }
+        drawAim(g);
+        drawTrail(g);
+        drawPlayer(g);
+        drawParticles(g);
+        ctx.restore();
+
+        ctx.restore();
+
+        /* subtle vignette keeps the pixel edges from feeling flat */
+        var grad = ctx.createLinearGradient(0, 0, 0, VIEW.h);
+        grad.addColorStop(0, "rgba(0,0,0,0.28)");
+        grad.addColorStop(0.25, "rgba(0,0,0,0)");
+        grad.addColorStop(1, "rgba(0,0,0,0.3)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, VIEW.w, VIEW.h);
+      }
+
+      return { ctx: ctx, frame: frame };
+    }
+  };
+
+  BJ.Render = Renderer;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+    <script>
+/**
+ * Block Jump - chiptune audio, generated at runtime with WebAudio.
+ *
+ * No sample files: every sound is a couple of oscillators and an envelope, and
+ * the background loop is a small step sequencer with a lookahead scheduler.
+ * Audio only starts after a user gesture, per browser autoplay rules.
+ */
+(function (global) {
+  "use strict";
+
+  var BJ = global.BJ;
+
+  function create() {
+    var ctx = null;
+    var master = null;
+    var musicGain = null;
+    var sfxGain = null;
+    var noiseBuf = null;
+    var timer = null;
+    var step = 0;
+    var nextTime = 0;
+    var enabled = { sfx: true, music: true };
+    var running = false;
+
+    var BPM = 126;
+    var STEP = 60 / BPM / 2; /* eighth notes */
+    /* A minor pentatonic-ish loop, 16 eighth notes per bar, 4 bars */
+    var BASS = [110, 0, 110, 0, 82.4, 0, 82.4, 0, 130.8, 0, 130.8, 0, 98, 0, 123.5, 0];
+    var ARP = [440, 523.25, 659.25, 523.25, 587.33, 440, 523.25, 392, 523.25, 659.25, 783.99, 659.25, 587.33, 493.88, 587.33, 440];
+
+    function init() {
+      if (ctx) return ctx;
+      var AC = global.AudioContext || global.webkitAudioContext;
+      if (!AC) return null;
+      ctx = new AC();
+      master = ctx.createGain();
+      master.gain.value = 0.9;
+      master.connect(ctx.destination);
+      sfxGain = ctx.createGain();
+      sfxGain.gain.value = 0.5;
+      sfxGain.connect(master);
+      musicGain = ctx.createGain();
+      musicGain.gain.value = 0.0;
+      musicGain.connect(master);
+
+      var len = Math.floor(ctx.sampleRate * 0.4);
+      noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+      var data = noiseBuf.getChannelData(0);
+      for (var i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+      return ctx;
+    }
+
+    function tone(o) {
+      if (!enabled.sfx || !ctx) return;
+      var t = ctx.currentTime + (o.delay || 0);
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = o.type || "square";
+      osc.frequency.setValueAtTime(o.from, t);
+      if (o.to && o.to !== o.from) osc.frequency.exponentialRampToValueAtTime(Math.max(20, o.to), t + o.dur);
+      var peak = o.gain === undefined ? 0.5 : o.gain;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(peak, t + Math.min(0.02, o.dur * 0.3));
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + o.dur);
+      osc.connect(gain);
+      gain.connect(sfxGain);
+      osc.start(t);
+      osc.stop(t + o.dur + 0.02);
+    }
+
+    function noise(o) {
+      if (!enabled.sfx || !ctx) return;
+      var t = ctx.currentTime + (o.delay || 0);
+      var src = ctx.createBufferSource();
+      src.buffer = noiseBuf;
+      var filt = ctx.createBiquadFilter();
+      filt.type = o.filter || "lowpass";
+      filt.frequency.setValueAtTime(o.from, t);
+      if (o.to) filt.frequency.exponentialRampToValueAtTime(Math.max(40, o.to), t + o.dur);
+      var gain = ctx.createGain();
+      gain.gain.setValueAtTime(o.gain === undefined ? 0.4 : o.gain, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + o.dur);
+      src.connect(filt);
+      filt.connect(gain);
+      gain.connect(sfxGain);
+      src.start(t);
+      src.stop(t + o.dur + 0.02);
+    }
+
+    var SFX = {
+      jump: function (charge) {
+        var from = 300 + charge * 260;
+        tone({ type: "square", from: from, to: from * 1.9, dur: 0.13, gain: 0.28 });
+        tone({ type: "triangle", from: from / 2, to: from, dur: 0.1, gain: 0.2 });
+      },
+      land: function () {
+        noise({ from: 900, to: 180, dur: 0.09, gain: 0.3 });
+        tone({ type: "triangle", from: 150, to: 90, dur: 0.08, gain: 0.25 });
+      },
+      step: function () {
+        noise({ from: 1600, to: 900, dur: 0.03, gain: 0.12 });
+      },
+      star: function () {
+        tone({ type: "square", from: 988, dur: 0.06, gain: 0.24 });
+        tone({ type: "square", from: 1319, dur: 0.09, gain: 0.22, delay: 0.05 });
+      },
+      perfect: function () {
+        [880, 1109, 1319, 1760].forEach(function (f, i) {
+          tone({ type: "square", from: f, dur: 0.11, gain: 0.2, delay: i * 0.045 });
+        });
+      },
+      power: function () {
+        [523, 659, 784, 1046].forEach(function (f, i) {
+          tone({ type: "triangle", from: f, to: f * 1.01, dur: 0.16, gain: 0.26, delay: i * 0.055 });
+        });
+      },
+      shield: function () {
+        tone({ type: "sine", from: 400, to: 1200, dur: 0.25, gain: 0.3 });
+        tone({ type: "triangle", from: 200, to: 600, dur: 0.25, gain: 0.2 });
+      },
+      hit: function () {
+        noise({ from: 2400, to: 120, dur: 0.35, gain: 0.5 });
+        tone({ type: "sawtooth", from: 320, to: 60, dur: 0.35, gain: 0.32 });
+      },
+      crumble: function () {
+        noise({ from: 500, to: 90, dur: 0.4, gain: 0.32 });
+      },
+      fall: function () {
+        tone({ type: "square", from: 620, to: 110, dur: 0.55, gain: 0.26 });
+      },
+      over: function () {
+        [523, 466, 392, 311].forEach(function (f, i) {
+          tone({ type: "square", from: f, dur: 0.24, gain: 0.24, delay: i * 0.15 });
+        });
+      },
+      ui: function () {
+        tone({ type: "square", from: 660, dur: 0.05, gain: 0.18 });
+      },
+      buy: function () {
+        [659, 880, 1174].forEach(function (f, i) {
+          tone({ type: "square", from: f, dur: 0.14, gain: 0.24, delay: i * 0.07 });
+        });
+      },
+      deny: function () {
+        tone({ type: "square", from: 220, to: 150, dur: 0.16, gain: 0.22 });
+      }
+    };
+
+    function schedule() {
+      if (!ctx) return;
+      while (nextTime < ctx.currentTime + 0.15) {
+        var bar = Math.floor(step / 16) % 4;
+        var i = step % 16;
+        var b = BASS[i];
+        if (b) {
+          var osc = ctx.createOscillator();
+          var gn = ctx.createGain();
+          osc.type = "square";
+          osc.frequency.value = b * (bar === 3 ? 1.5 : 1);
+          gn.gain.setValueAtTime(0.0001, nextTime);
+          gn.gain.exponentialRampToValueAtTime(0.34, nextTime + 0.02);
+          gn.gain.exponentialRampToValueAtTime(0.0001, nextTime + STEP * 1.6);
+          osc.connect(gn);
+          gn.connect(musicGain);
+          osc.start(nextTime);
+          osc.stop(nextTime + STEP * 1.8);
+        }
+        if (i % 2 === 0 || bar >= 2) {
+          var osc2 = ctx.createOscillator();
+          var gn2 = ctx.createGain();
+          osc2.type = "triangle";
+          osc2.frequency.value = ARP[(i + bar * 3) % 16] * (bar === 3 ? 1.25 : 1);
+          gn2.gain.setValueAtTime(0.0001, nextTime);
+          gn2.gain.exponentialRampToValueAtTime(bar >= 2 ? 0.16 : 0.1, nextTime + 0.015);
+          gn2.gain.exponentialRampToValueAtTime(0.0001, nextTime + STEP * 1.2);
+          osc2.connect(gn2);
+          gn2.connect(musicGain);
+          osc2.start(nextTime);
+          osc2.stop(nextTime + STEP * 1.4);
+        }
+        nextTime += STEP;
+        step++;
+      }
+    }
+
+    return {
+      /* Call from a real user gesture. */
+      unlock: function () {
+        init();
+        if (ctx && ctx.state === "suspended") ctx.resume();
+      },
+      sfx: function (name, arg) {
+        if (!ctx || !SFX[name]) return;
+        SFX[name](arg);
+      },
+      setEnabled: function (kind, on) {
+        enabled[kind] = !!on;
+        if (kind === "music") {
+          if (master) musicGain.gain.value = on ? 0.32 : 0;
+        }
+      },
+      startMusic: function () {
+        if (!ctx || running) return;
+        running = true;
+        step = 0;
+        nextTime = ctx.currentTime + 0.1;
+        timer = global.setInterval(schedule, 40);
+        if (enabled.music) musicGain.gain.value = 0.32;
+      },
+      stopMusic: function () {
+        running = false;
+        if (timer) global.clearInterval(timer);
+        timer = null;
+        if (musicGain) musicGain.gain.value = 0;
+      },
+      isReady: function () {
+        return !!ctx;
+      }
+    };
+  }
+
+  BJ.Audio = { create: create };
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+    <script>
+/**
+ * Block Jump - local persistence.
+ *
+ * The whole profile lives in one localStorage key. normalize() is pure so the
+ * shape can be unit-tested without a browser.
+ */
+(function (global) {
+  "use strict";
+
+  var BJ = global.BJ;
+  var KEY = "blockjump.save.v1";
+  var MAX_SCORES = 10;
+
+  function defaults() {
+    return {
+      v: 1,
+      name: "PLAYER",
+      bank: 0,
+      totalStars: 0,
+      owned: ["orange"],
+      skin: "orange",
+      best: { score: 0, blocks: 0, stars: 0 },
+      scores: [],
+      settings: { sfx: true, music: true, aid: true }
+    };
+  }
+
+  /* Coerce whatever is in storage into a valid profile. */
+  function normalize(raw) {
+    var d = defaults();
+    if (!raw || typeof raw !== "object") return d;
+    var out = defaults();
+    if (typeof raw.name === "string" && raw.name.trim()) out.name = raw.name.trim().slice(0, 12).toUpperCase();
+    if (Number.isFinite(raw.bank)) out.bank = Math.max(0, Math.floor(raw.bank));
+    if (Number.isFinite(raw.totalStars)) out.totalStars = Math.max(0, Math.floor(raw.totalStars));
+    if (Array.isArray(raw.owned)) {
+      var valid = BJ.CONFIG.skins.map(function (s) {
+        return s.id;
+      });
+      out.owned = ["orange"];
+      raw.owned.forEach(function (id) {
+        if (valid.indexOf(id) >= 0 && out.owned.indexOf(id) < 0) out.owned.push(id);
+      });
+    }
+    if (typeof raw.skin === "string" && out.owned.indexOf(raw.skin) >= 0) out.skin = raw.skin;
+    if (raw.best && typeof raw.best === "object") {
+      out.best = {
+        score: Math.max(0, Math.floor(raw.best.score || 0)),
+        blocks: Math.max(0, Math.floor(raw.best.blocks || 0)),
+        stars: Math.max(0, Math.floor(raw.best.stars || 0))
+      };
+    }
+    if (Array.isArray(raw.scores)) {
+      out.scores = raw.scores
+        .filter(function (s) {
+          return s && Number.isFinite(s.score);
+        })
+        .map(function (s) {
+          return {
+            name: (typeof s.name === "string" && s.name.trim() ? s.name.trim() : "PLAYER").slice(0, 12).toUpperCase(),
+            score: Math.max(0, Math.floor(s.score)),
+            blocks: Math.max(0, Math.floor(s.blocks || 0)),
+            stars: Math.max(0, Math.floor(s.stars || 0)),
+            ts: Number.isFinite(s.ts) ? s.ts : 0
+          };
+        })
+        .sort(function (a, b) {
+          return b.score - a.score || a.ts - b.ts;
+        })
+        .slice(0, MAX_SCORES);
+    }
+    if (raw.settings && typeof raw.settings === "object") {
+      out.settings = {
+        sfx: raw.settings.sfx !== false,
+        music: raw.settings.music !== false,
+        aid: raw.settings.aid !== false
+      };
+    }
+    return out;
+  }
+
+  /* Insert a run into the ladder, returning the new profile. */
+  function insertScore(profile, entry) {
+    var p = normalize(profile);
+    var row = {
+      name: p.name,
+      score: Math.max(0, Math.floor(entry.score)),
+      blocks: Math.max(0, Math.floor(entry.blocks || 0)),
+      stars: Math.max(0, Math.floor(entry.stars || 0)),
+      ts: entry.ts || 0
+    };
+    p.scores = p.scores.concat([row]).sort(function (a, b) {
+      return b.score - a.score || a.ts - b.ts;
+    });
+    p.scores = p.scores.slice(0, MAX_SCORES);
+    if (row.score > p.best.score) p.best = { score: row.score, blocks: row.blocks, stars: row.stars };
+    return p;
+  }
+
+  function rank(profile, entry) {
+    var p = normalize(profile);
+    var better = p.scores.filter(function (s) {
+      return s.score > entry.score;
+    }).length;
+    return better + 1;
+  }
+
+  var Save = {
+    key: KEY,
+    defaults: defaults,
+    normalize: normalize,
+    insertScore: insertScore,
+    rank: rank,
+    load: function () {
+      try {
+        return normalize(JSON.parse(global.localStorage.getItem(KEY) || "null"));
+      } catch (e) {
+        return defaults();
+      }
+    },
+    write: function (profile) {
+      try {
+        global.localStorage.setItem(KEY, JSON.stringify(profile));
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+    clear: function () {
+      try {
+        global.localStorage.removeItem(KEY);
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  };
+
+  BJ.Save = Save;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+    <script>
+/**
+ * Block Jump - one button, every device.
+ *
+ * Space / W / ArrowUp / mouse / touch, all funnelled into a single held flag
+ * with press and release edges. Nothing here knows about the game rules.
+ */
+(function (global) {
+  "use strict";
+
+  var BJ = global.BJ;
+
+  function create(opts) {
+    opts = opts || {};
+    var el = opts.element || global.document;
+    var state = { held: false, pressed: false, released: false };
+    var keys = { " ": 1, Spacebar: 1, ArrowUp: 1, KeyW: 1, Enter: 1 };
+
+    function press() {
+      if (state.held) return;
+      state.held = true;
+      state.pressed = true;
+      if (opts.onPress) opts.onPress();
+    }
+
+    function release() {
+      if (!state.held) return;
+      state.held = false;
+      state.released = true;
+      if (opts.onRelease) opts.onRelease();
+    }
+
+    function onKeyDown(e) {
+      if (keys[e.code] || keys[e.key]) {
+        if (e.repeat) return;
+        if (opts.enabled && !opts.enabled()) return;
+        e.preventDefault();
+        press();
+      }
+    }
+
+    function onKeyUp(e) {
+      if (keys[e.code] || keys[e.key]) {
+        e.preventDefault();
+        release();
+      }
+    }
+
+    function onPointerDown(e) {
+      if (opts.enabled && !opts.enabled()) return;
+      if (e.target && e.target.closest && e.target.closest("button, a, input, .no-jump")) return;
+      e.preventDefault();
+      press();
+    }
+
+    function onPointerUp(e) {
+      e.preventDefault();
+      release();
+    }
+
+    global.addEventListener("keydown", onKeyDown, { passive: false });
+    global.addEventListener("keyup", onKeyUp, { passive: false });
+    el.addEventListener("pointerdown", onPointerDown, { passive: false });
+    global.addEventListener("pointerup", onPointerUp, { passive: false });
+    global.addEventListener("pointercancel", onPointerUp, { passive: false });
+    global.addEventListener("blur", release);
+    global.document.addEventListener("visibilitychange", function () {
+      release();
+    });
+    /* a stray context menu on long-press ruins the feel on mobile */
+    el.addEventListener("contextmenu", function (e) {
+      e.preventDefault();
+    });
+
+    return {
+      state: state,
+      /* Call once per rendered frame, after the fixed steps have run. */
+      endFrame: function () {
+        state.pressed = false;
+        state.released = false;
+      },
+      forceRelease: release
+    };
+  }
+
+  BJ.Input = { create: create };
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+    <script>
+/**
+ * Block Jump - DOM shell: menus, HUD, shop, ladder.
+ *
+ * The canvas only draws the world; everything textual is DOM so it stays
+ * crisp at any scale and stays accessible to keyboards.
+ */
+(function (global) {
+  "use strict";
+
+  var BJ = global.BJ;
+  var doc = global.document;
+
+  function el(id) {
+    return doc.getElementById(id);
+  }
+
+  function create(handlers) {
+    var screens = {
+      title: el("screen-title"),
+      howto: el("screen-howto"),
+      shop: el("screen-shop"),
+      ranks: el("screen-ranks"),
+      pause: el("screen-pause"),
+      over: el("screen-over")
+    };
+    var hud = el("hud");
+    var current = "title";
+    var toastTimer = null;
+
+    var ui = {
+      current: function () {
+        return current;
+      },
+      isOpen: function () {
+        return current !== null;
+      },
+      screen: function (name) {
+        var key;
+        for (key in screens) if (screens[key]) screens[key].classList.toggle("show", key === name);
+        current = name || null;
+        /* keep the HUD visible while paused, hide it behind full-screen menus */
+        hud.classList.toggle("hidden", name !== null && name !== "pause");
+        if (name === "shop") ui.refreshShop();
+        if (name === "ranks") ui.refreshRanks();
+      },
+      setHUD: function (data) {
+        el("hud-score").textContent = data.score;
+        el("hud-best").textContent = data.best;
+        el("hud-blocks").textContent = data.blocks;
+        el("hud-stars").textContent = data.stars;
+        el("hud-bank").textContent = data.bank;
+        var chips = el("hud-chips");
+        var want = data.chips.join("|");
+        if (chips.dataset.want !== want) {
+          chips.dataset.want = want;
+          chips.innerHTML = data.chips
+            .map(function (c) {
+              return '<span class="chip ' + c.kind + '">' + c.label + "</span>";
+            })
+            .join("");
+        }
+      },
+      meter: function (m) {
+        var meter = el("hud-meter");
+        meter.classList.toggle("show", !!m.visible);
+        if (!m.visible) return;
+        el("meter-fill").style.width = (m.charge * 100).toFixed(1) + "%";
+        el("meter-marker").style.left = (m.charge * 100).toFixed(1) + "%";
+        var win = el("meter-window");
+        if (m.window) {
+          win.style.display = "";
+          win.style.left = (m.cMin * 100).toFixed(1) + "%";
+          win.style.width = ((m.cMax - m.cMin) * 100).toFixed(1) + "%";
+          win.style.background = m.safe ? "rgba(126,224,129,0.42)" : "rgba(126,224,129,0.22)";
+        } else {
+          win.style.display = "none";
+        }
+        var hint = el("meter-hint");
+        if (m.hint !== undefined && hint.dataset.state !== m.hint) {
+          hint.dataset.state = m.hint;
+          hint.textContent = m.hintText || hint.textContent;
+        }
+        if (m.fadeHint) hint.classList.add("fade");
+      },
+      toast: function (text, ms) {
+        var t = el("hud-toast");
+        t.textContent = text;
+        t.classList.add("show");
+        if (toastTimer) global.clearTimeout(toastTimer);
+        toastTimer = global.setTimeout(function () {
+          t.classList.remove("show");
+        }, ms || 1100);
+      },
+      floater: function (text, x, y, cls) {
+        var box = el("hud-floaters");
+        if (!box) return;
+        var d = doc.createElement("div");
+        d.className = "floater " + (cls || "");
+        d.textContent = text;
+        d.style.left = x + "px";
+        d.style.top = y + "px";
+        box.appendChild(d);
+        global.setTimeout(function () {
+          if (d.parentNode) d.parentNode.removeChild(d);
+        }, 950);
+      },
+      refreshShop: function () {
+        var profile = handlers.profile();
+        el("shop-bank").textContent = profile.bank;
+        var grid = el("shop-grid");
+        grid.innerHTML = "";
+        BJ.CONFIG.skins.forEach(function (skin, idx) {
+          var owned = profile.owned.indexOf(skin.id) >= 0;
+          var equipped = profile.skin === skin.id;
+          var card = doc.createElement("div");
+          card.className = "skin" + (owned ? " owned" : "") + (equipped ? " equipped" : "");
+
+          var cv = doc.createElement("canvas");
+          cv.width = 64;
+          cv.height = 64;
+          cv.getContext("2d").drawImage(BJ.Pixel.previewBlock(idx, 64), 0, 0);
+          card.appendChild(cv);
+
+          var name = doc.createElement("div");
+          name.className = "name";
+          name.textContent = skin.name;
+          card.appendChild(name);
+
+          var price = doc.createElement("div");
+          price.className = "price";
+          price.innerHTML = owned ? "已拥有 OWNED" : "★ <b>" + skin.price + "</b>";
+          card.appendChild(price);
+
+          var btn = doc.createElement("button");
+          if (equipped) {
+            btn.textContent = "使用中 EQUIPPED";
+            btn.disabled = true;
+          } else if (owned) {
+            btn.textContent = "装备 EQUIP";
+            btn.addEventListener("click", function () {
+              handlers.equip(skin.id);
+            });
+          } else {
+            btn.textContent = "购买 BUY";
+            btn.addEventListener("click", function () {
+              handlers.buy(skin.id, skin.price);
+            });
+          }
+          card.appendChild(btn);
+          grid.appendChild(card);
+        });
+      },
+      refreshRanks: function () {
+        var profile = handlers.profile();
+        var body = el("ranks-table").querySelector("tbody");
+        body.innerHTML = "";
+        if (!profile.scores.length) {
+          var tr = doc.createElement("tr");
+          tr.innerHTML = '<td colspan="5" class="empty">还没有记录 · No runs yet — go jump!</td>';
+          body.appendChild(tr);
+        }
+        profile.scores.forEach(function (s, i) {
+          var tr = doc.createElement("tr");
+          if (s.name === profile.name) tr.className = "me";
+          tr.innerHTML =
+            "<td>" +
+            (i + 1) +
+            "</td><td>" +
+            s.name +
+            "</td><td>" +
+            s.score +
+            "</td><td>" +
+            s.blocks +
+            "</td><td>" +
+            s.stars +
+            "</td>";
+          body.appendChild(tr);
+        });
+        el("input-name").value = profile.name;
+      },
+      setName: function (name) {
+        el("input-name").value = name;
+      },
+      toggles: function (profile) {
+        ["toggles-title", "toggles-pause"].forEach(function (id) {
+          var box = el(id);
+          box.innerHTML = "";
+          [
+            { key: "sfx", label: "音效 SFX" },
+            { key: "music", label: "音乐 MUSIC" },
+            { key: "aid", label: "辅助线 AIM AID" }
+          ].forEach(function (item) {
+            var b = doc.createElement("button");
+            b.className = "toggle" + (profile.settings[item.key] ? " on" : "");
+            b.textContent = item.label;
+            b.addEventListener("click", function () {
+              handlers.toggle(item.key);
+            });
+            box.appendChild(b);
+          });
+        });
+      },
+      result: function (data) {
+        el("over-eyebrow").textContent = data.record ? "NEW RECORD" : "RUN OVER";
+        el("over-eyebrow").classList.toggle("new", !!data.record);
+        el("over-title").textContent = data.record ? "新纪录！" : "跳完了";
+        el("over-score").textContent = data.score;
+        el("over-blocks").textContent = data.blocks + " BLK";
+        el("over-stars").textContent = data.stars;
+        el("over-perfect").textContent = data.perfect;
+        el("over-best").textContent = data.best;
+        el("over-rank").textContent = "#" + data.rank;
+      },
+      hudVisible: function (on) {
+        hud.classList.toggle("hidden", !on);
+      },
+      pauseButton: function (on) {
+        el("btn-pause").classList.toggle("show", !!on);
+      }
+    };
+
+    /* menu buttons */
+    doc.querySelectorAll("[data-action]").forEach(function (btn) {
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        handlers.action(btn.dataset.action, btn);
+      });
+    });
+    el("input-name").addEventListener("change", function () {
+      handlers.rename(this.value);
+    });
+
+    return ui;
+  }
+
+  BJ.UI = { create: create };
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+    <script>
+/**
+ * Block Jump - the shell: fixed-step loop, run lifecycle, camera, juice and
+ * the wiring between the simulation, the renderer, the menus and the audio.
+ */
+(function (global) {
+  "use strict";
+
+  var BJ = global.BJ;
+  var C = BJ.CONFIG;
+  var P = BJ.Player;
+  var doc = global.document;
+
+  var canvas, stage, renderer, audio, ui, input;
+  var profile;
+  var g;
+  var acc = 0;
+  var lastFrame = 0;
+  var hudCache = "";
+
+  /* ------------------------------------------------------------------ setup */
+
+  function fit() {
+    var vw = global.innerWidth;
+    var vh = global.innerHeight;
+    var s = Math.min(vw / C.view.w, vh / C.view.h);
+    if (s >= 2) s = Math.floor(s);
+    var w = Math.round(C.view.w * s);
+    var h = Math.round(C.view.h * s);
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+    stage.style.width = w + "px";
+    stage.style.height = h + "px";
+    stage.style.setProperty("--hud-scale", String(s));
+  }
+
+  function randomSeed() {
+    return 1 + Math.floor(Math.random() * 1e9);
+  }
+
+  /* --------------------------------------------------------------- particles */
+
+  function burst(x, y, count, colors, opts) {
+    opts = opts || {};
+    for (var i = 0; i < count; i++) {
+      var a = Math.random() * Math.PI * 2;
+      var sp = (opts.speed || 1.4) * (0.4 + Math.random());
+      g.particles.push({
+        x: x,
+        y: y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp - (opts.lift || 0.4),
+        life: opts.life || 0.55,
+        maxLife: opts.life || 0.55,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: opts.size || (Math.random() < 0.3 ? 2 : 1),
+        grav: opts.grav === undefined ? 0.06 : opts.grav
+      });
+    }
+  }
+
+  function dust(x, y) {
+    burst(x, y, 5, ["#cbb08a", "#9a7c58", "#e2d0b4"], { speed: 1.1, life: 0.35, grav: 0.05, lift: 0.2 });
+  }
+
+  function floaterAt(text, wx, wy, cls) {
+    /* HUD is a 480x270 box scaled to the stage, so game pixels are its units */
+    ui.floater(text, wx - g.camX, wy, cls);
+  }
+
+  /* -------------------------------------------------------------------- runs */
+
+  function beginRun(seed, attract) {
+    var world = BJ.World.create(seed, {
+      onCrumble: function (pl) {
+        audio.sfx("crumble");
+        burst(pl.x + pl.w / 2, pl.y + 20, 14, ["#7a5a38", "#4d3a24", "#a9865c"], { speed: 1.2, life: 0.7, grav: 0.14 });
+      }
+    });
+    world.ensure(3);
+    var player = P.create({ plat: world.plats[0] });
+
+    g.world = world;
+    g.player = player;
+    g.plan = null;
+    g.planKey = "";
+    g.camX = player.x - 150;
+    g.time = 0;
+    g.particles = [];
+    g.trail = [];
+    g.shake = 0;
+    g.biomeA = 0;
+    g.biomeB = 0;
+    g.biomeT = 0;
+    g.attract = !!attract;
+    g.deadAt = 0;
+    g.runTime = 0;
+    g.finished = false;
+    g.runStars = 0;
+    g.startBank = profile.bank;
+    g.mode = attract ? "title" : "play";
+    g.bankBefore = profile.bank;
+  }
+
+  function startRun() {
+    beginRun(randomSeed(), false);
+    ui.screen(null);
+    ui.hudVisible(true);
+    ui.pauseButton(true);
+  }
+
+  function startAttract() {
+    beginRun(randomSeed(), true);
+    ui.screen("title");
+    ui.pauseButton(false);
+  }
+
+  function finishRun() {
+    var p = g.player;
+    var score = P.score(p);
+    var record = score > profile.best.score;
+    var entry = { score: score, blocks: p.blocks(), stars: p.stars, ts: Date.now() };
+    var rank = BJ.Save.rank(profile, entry);
+    profile = BJ.Save.insertScore(profile, entry);
+    profile.bank = g.startBank + p.stars;
+    profile.totalStars += p.stars;
+    BJ.Save.write(profile);
+    if (p.stars > 0) ui.toast("+" + p.stars + " ★ 已存入商店 · saved to the shop", 1600);
+    ui.result({
+      score: score,
+      blocks: p.blocks(),
+      stars: p.stars,
+      perfect: p.perfects,
+      best: profile.best.score,
+      rank: rank,
+      record: record
+    });
+    ui.screen("over");
+    ui.pauseButton(false);
+    g.mode = "over";
+    g.finished = true;
+    audio.sfx("over");
+  }
+
+  function pause(on) {
+    if (on && g.mode === "play") {
+      g.mode = "pause";
+      ui.screen("pause");
+      ui.toggles(profile);
+      input.forceRelease();
+      audio.sfx("ui");
+    } else if (!on && g.mode === "pause") {
+      g.mode = "play";
+      ui.screen(null);
+      audio.sfx("ui");
+    }
+  }
+
+  /* ----------------------------------------------------------------- callbacks */
+
+  function playerCallbacks() {
+    return {
+      onJump: function (charge) {
+        if (g.attract) return;
+        audio.sfx("jump", charge);
+        dust(g.player.x, g.player.y);
+        burst(g.player.x, g.player.y, 3, ["#e6d3b4", "#b99a72"], { speed: 0.9, life: 0.3, grav: 0.05, lift: 0.1 });
+      },
+      onLand: function (pl, off) {
+        if (g.attract) return;
+        audio.sfx("land");
+        dust(g.player.x, g.player.y);
+        g.shake = Math.min(3, (pl.off || 0) + 1.2);
+        if (off > 40) ui.toast("稳住了 · saved it", 700);
+      },
+      onPerfect: function (pl) {
+        if (g.attract) return;
+        audio.sfx("perfect");
+        g.shake = 2.4;
+        burst(g.player.x, g.player.y, 12, ["#7ee081", "#d8ffd9", "#39b25a"], { speed: 1.8, life: 0.6 });
+        floaterAt("PERFECT +50", g.player.x, g.player.y - 34, "perfect");
+      },
+      onStar: function (st) {
+        if (g.attract) return;
+        audio.sfx("star");
+        g.runStars++;
+        burst(st.x, st.y, 8, ["#ffe066", "#fff3b0", "#ffb03a"], { speed: 1.5, life: 0.5 });
+        floaterAt("+1", st.x, st.y - 10, "star");
+      },
+      onPower: function (kind) {
+        if (g.attract) return;
+        audio.sfx(kind === "shield" ? "shield" : "power");
+        g.shake = 2;
+        var p = g.player;
+        burst(p.x, p.y - 8, 16, ["#ffffff", kind === "shield" ? "#8ec2ff" : kind === "magnet" ? "#8ce8aa" : "#ffb08a"], {
+          speed: 2,
+          life: 0.6,
+          grav: 0.02
+        });
+        var label = { shield: "SHIELD · 护盾", boost: "BOOST · 加速", magnet: "MAGNET · 磁铁" }[kind];
+        floaterAt(label, p.x, p.y - 34, "power");
+        ui.toast(label, 1100);
+      },
+      onShieldSave: function (why) {
+        if (g.attract) return;
+        audio.sfx("shield");
+        g.shake = 3.4;
+        ui.toast(why === "fall" ? "护盾救你一命 · SHIELD SAVED YOU" : "护盾挡下了 · SHIELD BLOCKED IT", 1400);
+        burst(g.player.x, g.player.y - 8, 18, ["#8ec2ff", "#ffffff", "#4a86e8"], { speed: 2.2, life: 0.7, grav: 0.02 });
+      },
+      onCrumbleStart: function () {
+        if (!g.attract) audio.sfx("crumble");
+      },
+      onLedgeGone: function () {
+        if (!g.attract) ui.toast("平台塌了！ · LEDGE GONE", 900);
+      },
+      onDeath: function (cause) {
+        g.deadAt = g.time;
+        if (g.attract) return;
+        g.shake = 6;
+        audio.sfx(cause === "hazard" ? "hit" : "fall");
+        var p = g.player;
+        burst(p.x, p.y - 8, 26, [C.skins[g.skinIdx].body, C.skins[g.skinIdx].shade, "#ffffff"], {
+          speed: 2.6,
+          life: 0.9,
+          grav: 0.16
+        });
+      }
+    };
+  }
+
+  /* --------------------------------------------------------------------- step */
+
+  function step(dt) {
+    var p = g.player;
+    if (!p) return;
+    g.time += dt;
+    g.runTime += dt;
+
+    if (g.shake > 0) g.shake = Math.max(0, g.shake - dt * 12);
+
+    g.world.update(dt, p);
+
+    /* The button is read after the world has ticked, so a release decided here
+       takes off at exactly the clock the plan was solved for - the same
+       ordering the simulation tests use. */
+    var held = false;
+    if (g.mode === "play") held = g.auto ? P.botInput(p, g.world, { time: g.world.time }) : input.state.held;
+    else if (g.mode === "title" && !g.finished) held = P.botInput(p, g.world, { time: g.world.time });
+
+    P.update(p, dt, g.world, { held: held, pressed: false, released: false }, playerCallbacks());
+
+    /* trail behind an airborne block */
+    if (p.state === "air") {
+      g.trail.push({ x: p.x, y: p.y });
+      if (g.trail.length > 7) g.trail.shift();
+    } else if (g.trail.length) {
+      g.trail.shift();
+    }
+
+    /* particles */
+    for (var i = g.particles.length - 1; i >= 0; i--) {
+      var pt = g.particles[i];
+      pt.life -= dt;
+      if (pt.life <= 0) {
+        g.particles.splice(i, 1);
+        continue;
+      }
+      pt.vy += pt.grav;
+      pt.x += pt.vx;
+      pt.y += pt.vy;
+    }
+
+    /* camera: lead the player a little, settle fast */
+    var lead = p.state === "air" ? Math.max(0, p.vx) * 3 : 0;
+    var target = p.x - 132 + lead;
+    g.camX += (target - g.camX) * Math.min(1, dt * 9);
+
+    /* World streaming: one platform at a time, a few times a second. Level
+       generation costs a couple of ms, so it never belongs in every frame. */
+    g.genTick = (g.genTick || 0) + 1;
+    var lastIdx = g.world.last().i;
+    var wantIdx = (p.plat ? p.plat.i : 0) + 3;
+    if (lastIdx < wantIdx && g.genTick % 6 === 0) g.world.ensure(lastIdx + 1);
+    if (p.plat && p.plat.i % 8 === 0) g.world.prune(g.camX);
+
+    /* biome blend every 40 platforms */
+    var bi = p.plat ? Math.floor(p.plat.i / 40) % C.biomes.length : 0;
+    if (g.biomeT === 0 && bi !== g.biomeA) {
+      g.biomeB = bi;
+      g.biomeT = 0.0001;
+      if (g.mode === "play") ui.toast(C.biomes[bi].name + " · 新区域", 1200);
+    }
+    if (g.biomeT > 0) {
+      g.biomeT = Math.min(1, g.biomeT + dt / 1.6);
+      if (g.biomeT >= 1) {
+        g.biomeA = g.biomeB;
+        g.biomeT = 0;
+      }
+    }
+
+    /* aim plan for the meter + arc */
+    var grounded = p.state === "idle" || p.state === "charge";
+    if (grounded && p.plat) {
+      var next = g.world.at(p.plat.i + 1);
+      var dynamic = p.plat.type === "mover" || (next && next.type === "mover");
+      var key = p.plat.i + ":" + p.plat.type + ":" + (dynamic ? g.world.time.toFixed(2) : "");
+      if (!g.plan || g.planKey !== key) {
+        g.plan = P.plan(p, g.world);
+        g.planKey = key;
+      }
+    } else {
+      g.plan = null;
+      g.planKey = "";
+    }
+
+    /* death -> short beat -> results */
+    if (p.state === "dead" && !g.finished && g.time - g.deadAt > (g.attract ? 1.2 : 0.85)) {
+      if (g.attract) startAttract();
+      else finishRun();
+    }
+  }
+
+  /* ---------------------------------------------------------------------- hud */
+
+  function hud() {
+    var p = g.player;
+    if (!p) return;
+    var score = P.score(p);
+    var chips = [];
+    if (p.shield > 0) chips.push({ kind: "shield", label: "SHIELD ×" + p.shield });
+    if (p.boostT > 0) chips.push({ kind: "boost", label: "BOOST " + p.boostT.toFixed(1) + "s" });
+    if (p.magnetT > 0) chips.push({ kind: "magnet", label: "MAGNET " + p.magnetT.toFixed(1) + "s" });
+
+    var key = [score, p.blocks(), p.stars, g.startBank + p.stars, chips.map((c) => c.label).join()].join("|");
+    if (key !== hudCache) {
+      hudCache = key;
+      ui.setHUD({
+        score: score,
+        best: Math.max(profile.best.score, score),
+        blocks: p.blocks(),
+        stars: p.stars,
+        bank: g.startBank + p.stars,
+        chips: chips
+      });
+    }
+
+    var grounded = p.state === "idle" || p.state === "charge";
+    var showMeter = grounded && g.mode === "play";
+    var plan = g.plan;
+    var safe = false;
+    if (showMeter && plan && plan.feasible && p.state === "charge") {
+      safe = p.charge >= plan.cMin && p.charge <= plan.cMax;
+    }
+    ui.meter({
+      visible: showMeter,
+      charge: p.state === "charge" ? p.charge : 0,
+      window: showMeter && g.aid && plan && plan.feasible,
+      cMin: plan ? plan.cMin : 0,
+      cMax: plan ? plan.cMax : 0,
+      safe: safe,
+      fadeHint: g.runTime > 14 || p.jumps > 4
+    });
+  }
+
+  /* --------------------------------------------------------------------- loop */
+
+  function frame(now) {
+    var elapsed = Math.min(0.1, (now - lastFrame) / 1000 || 0);
+    lastFrame = now;
+    if (g.mode === "play" || g.mode === "title") {
+      acc += elapsed;
+      var steps = 0;
+      while (acc >= C.step && steps < 6) {
+        step(C.step);
+        acc -= C.step;
+        steps++;
+      }
+    } else {
+      acc = 0;
+    }
+    renderer.frame(g);
+    hud();
+    input.endFrame();
+    global.requestAnimationFrame(frame);
+  }
+
+  /* ------------------------------------------------------------------ actions */
+
+  function handleAction(name) {
+    audio.unlock();
+    audio.sfx("ui");
+    if (name === "play" || name === "restart") {
+      if (audio.isReady()) audio.startMusic();
+      startRun();
+    } else if (name === "howto" || name === "shop" || name === "ranks") {
+      ui.screen(name);
+    } else if (name === "back") {
+      ui.screen("title");
+    } else if (name === "resume") {
+      pause(false);
+    } else if (name === "menu") {
+      g.mode = "title";
+      startAttract();
+    }
+  }
+
+  function toggle(key) {
+    profile.settings[key] = !profile.settings[key];
+    if (key === "sfx") audio.setEnabled("sfx", profile.settings.sfx);
+    if (key === "music") {
+      audio.setEnabled("music", profile.settings.music);
+      if (profile.settings.music && audio.isReady()) audio.startMusic();
+      if (!profile.settings.music) audio.stopMusic();
+    }
+    if (key === "aid") {
+      g.aid = profile.settings.aid;
+      ui.toast(profile.settings.aid ? "辅助线开 · AIM AID ON" : "辅助线关 · AIM AID OFF", 1200);
+    }
+    BJ.Save.write(profile);
+    ui.toggles(profile);
+  }
+
+  function buy(skinId, price) {
+    if (profile.owned.indexOf(skinId) >= 0) return;
+    if (profile.bank < price) {
+      audio.sfx("deny");
+      ui.toast("星星不够 · NOT ENOUGH STARS (" + profile.bank + "/" + price + ")", 1500);
+      return;
+    }
+    profile.bank -= price;
+    profile.owned.push(skinId);
+    profile.skin = skinId;
+    BJ.Save.write(profile);
+    g.skinIdx = skinIndex();
+    audio.sfx("buy");
+    ui.refreshShop();
+  }
+
+  function equip(skinId) {
+    profile.skin = skinId;
+    BJ.Save.write(profile);
+    g.skinIdx = skinIndex();
+    audio.sfx("ui");
+    ui.refreshShop();
+  }
+
+  function skinIndex() {
+    var i = C.skins.findIndex(function (s) {
+      return s.id === profile.skin;
+    });
+    return i < 0 ? 0 : i;
+  }
+
+  /* --------------------------------------------------------------------- boot */
+
+  function boot() {
+    canvas = doc.getElementById("game");
+    stage = doc.getElementById("stage");
+    BJ.Pixel.init();
+    renderer = BJ.Render.create(canvas);
+    audio = BJ.Audio.create();
+    profile = BJ.Save.load();
+
+    ui = BJ.UI.create({
+      profile: function () {
+        return profile;
+      },
+      action: handleAction,
+      toggle: toggle,
+      buy: buy,
+      equip: equip,
+      rename: function (name) {
+        profile.name = (name || "PLAYER").toUpperCase().slice(0, 12) || "PLAYER";
+        BJ.Save.write(profile);
+        ui.refreshRanks();
+      }
+    });
+
+    input = BJ.Input.create({
+      element: stage,
+      enabled: function () {
+        return g.mode === "play";
+      },
+      onPress: function () {
+        audio.unlock();
+        if (g.mode === "play" && audio.isReady()) audio.startMusic();
+      }
+    });
+
+    g = {
+      world: null,
+      player: null,
+      plan: null,
+      planKey: "",
+      camX: 0,
+      time: 0,
+      particles: [],
+      trail: [],
+      shake: 0,
+      mode: "title",
+      skinIdx: skinIndex(),
+      aid: profile.settings.aid,
+      biomeA: 0,
+      biomeB: 0,
+      biomeT: 0,
+      attract: true,
+      deadAt: 0,
+      runTime: 0,
+      finished: false,
+      runStars: 0,
+      startBank: profile.bank
+    };
+
+    audio.setEnabled("sfx", profile.settings.sfx);
+    audio.setEnabled("music", profile.settings.music);
+    g.aid = profile.settings.aid;
+
+    ui.toggles(profile);
+    ui.hudVisible(false);
+    fit();
+    startAttract();
+    g.camX = g.player.x - 150;
+    lastFrame = global.performance.now();
+    global.requestAnimationFrame(frame);
+
+    global.addEventListener("resize", fit);
+    global.addEventListener("orientationchange", function () {
+      global.setTimeout(fit, 120);
+    });
+    doc.addEventListener("visibilitychange", function () {
+      if (doc.hidden) pause(true);
+    });
+    global.addEventListener("keydown", function (e) {
+      if (e.code === "Escape" || e.code === "KeyP") {
+        if (g.mode === "play") pause(true);
+        else if (g.mode === "pause") pause(false);
+      }
+      if (e.code === "Enter" && (g.mode === "title" || g.mode === "over")) handleAction("play");
+    });
+    doc.getElementById("btn-pause").addEventListener("click", function () {
+      pause(true);
+    });
+  }
+
+  /* Small handle for debugging, automated checks and for driving the game
+     from the console (autoplay is also handy for recording footage). */
+  BJ.Game = {
+    boot: boot,
+    state: function () {
+      return g;
+    },
+    profile: function () {
+      return profile;
+    },
+    autoplay: function (on) {
+      if (g) g.auto = !!on;
+    }
+  };
+  if (doc.readyState === "loading") doc.addEventListener("DOMContentLoaded", boot);
+  else boot();
+})(typeof globalThis !== "undefined" ? globalThis : this);
+
+</script>
+  </body>
+</html>

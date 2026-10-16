@@ -1,0 +1,93 @@
+# Block Jump on Kubernetes / Sealos.
+#
+# The easy path on Sealos is App Launchpad (create an app from the image and
+# make port 80 public - it wires up the HTTPS domain for you). Use this file
+# when you would rather apply resources by hand, from the Sealos Kubernetes
+# panel or with kubectl:
+#
+#   kubectl apply -f deploy/sealos.yaml
+#
+# Replace the image below with the one you pushed (see DEPLOY.md).
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: block-jump
+  labels:
+    app: block-jump
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: block-jump
+  template:
+    metadata:
+      labels:
+        app: block-jump
+    spec:
+      containers:
+        - name: web
+          image: docker.io/YOUR_DOCKERHUB_NAME/block-jump:1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            # A static site: a few millicores idle, a burst while loading.
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 300m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: block-jump
+  labels:
+    app: block-jump
+spec:
+  type: ClusterIP
+  selector:
+    app: block-jump
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+# Only needed if you apply this file by hand: App Launchpad creates its own
+# public domain with HTTPS. Set your host, and keep the cert-manager
+# annotation if your cluster issues certificates automatically (Sealos does).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: block-jump
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: block-jump.example.com # <-- replace with your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: block-jump
+                port:
+                  number: 80
