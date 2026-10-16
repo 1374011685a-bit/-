@@ -1,0 +1,8 @@
+# Keep the build context to just what the container serves.
+tests
+preview
+dist
+README.md
+deploy/DEPLOY.md
+deploy/build.ps1
+deploy/sealos.yaml

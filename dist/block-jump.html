@@ -85,8 +85,9 @@ body {
   position: absolute;
   left: 0;
   top: 0;
-  width: 480px;
-  height: 270px;
+  /* the size of the logical view, which the game sets (landscape or portrait) */
+  width: var(--hud-w, 480px);
+  height: var(--hud-h, 270px);
   transform-origin: 0 0;
   transform: scale(var(--hud-scale, 1));
   pointer-events: none;
@@ -823,17 +824,6 @@ body {
   color: var(--green);
 }
 
-.rotate-hint {
-  display: none;
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 11px;
-  color: var(--muted);
-  pointer-events: none;
-}
-
 @media (max-width: 640px) {
   .cols {
     grid-template-columns: 1fr;
@@ -853,11 +843,6 @@ body {
   }
 }
 
-@media (orientation: portrait) and (max-width: 820px) {
-  .rotate-hint {
-    display: block;
-  }
-}
 
 </style>
   </head>
@@ -900,8 +885,6 @@ body {
           <button class="icon-btn pause no-jump" id="btn-pause" title="暂停 Pause">❚❚</button>
         </div>
       </div>
-
-      <div class="rotate-hint">横屏体验更佳 · Rotate for a wider view</div>
 
       <!-- =========================== title ============================ -->
       <section class="screen show" id="screen-title">
@@ -1073,6 +1056,13 @@ body {
   BJ.CONFIG = {
     /* Internal render resolution (the canvas is letterboxed up from this). */
     view: { w: 480, h: 270 },
+
+    /* Portrait phones get their own view: a tall buffer that matches the
+       screen's aspect ratio, so the game fills the whole display instead of
+       sitting in a small landscape strip with black bars. The width never goes
+       below minWidth, because the player has to be able to see the next
+       platform. `anchor` is where the platform line sits vertically. */
+    portrait: { minWidth: 300, maxWidth: 420, anchor: 0.72 },
 
     /* Fixed simulation step, in seconds. */
     step: 1 / 60,
@@ -2848,14 +2838,29 @@ body {
       var ctx = canvas.getContext("2d");
       ctx.imageSmoothingEnabled = false;
 
+      /* The backdrop is sized from the current view, which changes on phones
+         when the display rotates, so it is rebuilt whenever the view changes. */
       var skyStars = [];
-      var r = BJ.rng(1337);
-      for (var i = 0; i < 90; i++) {
-        skyStars.push({ x: r() * 900, y: r() * 150, s: r() < 0.2 ? 2 : 1, p: r() * 6.28 });
-      }
       var cloudSpots = [];
-      for (var c = 0; c < 14; c++) {
-        cloudSpots.push({ x: r() * 1400, y: 18 + r() * 90, v: Math.floor(r() * 3), s: 0.6 + r() * 0.8 });
+      var backdropFor = "";
+
+      function buildBackdrop() {
+        var key = VIEW.w + "x" + VIEW.h;
+        if (key === backdropFor) return;
+        backdropFor = key;
+        var r = BJ.rng(1337);
+        skyStars = [];
+        var stars = Math.max(40, Math.round((VIEW.w * VIEW.h) / 1400));
+        for (var i = 0; i < stars; i++) {
+          skyStars.push({ x: r() * 900, y: r() * VIEW.h * 0.62, s: r() < 0.2 ? 2 : 1, p: r() * 6.28 });
+        }
+        cloudSpots = [];
+        /* keep roughly the same number of clouds *visible* whatever the view
+           is, so a tall phone frame does not end up with a bare sky */
+        var clouds = Math.max(10, Math.round((1400 / VIEW.w) * 8));
+        for (var c = 0; c < clouds; c++) {
+          cloudSpots.push({ x: r() * 1400, y: (0.03 + r() * 0.45) * VIEW.h, v: Math.floor(r() * 3), s: 0.6 + r() * 0.8 });
+        }
       }
 
       function drawSky(g) {
@@ -2906,10 +2911,15 @@ body {
         }
 
         ctx.globalAlpha = 1;
+        /* mountains are anchored to the world, so they follow the camera's
+           vertical offset (portrait frames sit lower on the screen) */
+        ctx.save();
+        ctx.translate(0, Math.round(g.camY || 0));
         layer(a, 0, 0.1, 210, 1);
         if (t > 0) layer(b, 0, 0.1, 210, t);
+        ctx.restore();
 
-        /* clouds */
+        /* clouds: pure sky decoration, so they stay in screen space */
         var ci = Math.floor(g.biomeA) % biomes.length;
         for (var i = 0; i < cloudSpots.length; i++) {
           var cs = cloudSpots[i];
@@ -2921,8 +2931,11 @@ body {
         }
         ctx.globalAlpha = 1;
 
+        ctx.save();
+        ctx.translate(0, Math.round(g.camY || 0));
         layer(a, 1, 0.3, 236, 1);
         if (t > 0) layer(b, 1, 0.3, 236, t);
+        ctx.restore();
       }
 
       function drawIsland(g, pl) {
@@ -3125,7 +3138,7 @@ body {
         ctx.fillStyle = col;
         for (var n = 4; n <= steps; n += 4) {
           var pt = BJ.Motion.pointAt(arc, n);
-          if (pt.x > VIEW.w + 6) break;
+          if (pt.x - g.camX > VIEW.w + 6) break; /* the arc is drawn in world space */
           ctx.globalAlpha = 0.75;
           ctx.fillRect(Math.round(pt.x), Math.round(pt.y - 8), 2, 2);
         }
@@ -3156,6 +3169,7 @@ body {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, VIEW.w, VIEW.h);
+        buildBackdrop();
 
         var shake = g.shake || 0;
         var ox = shake ? Math.round((Math.random() - 0.5) * shake) : 0;
@@ -3169,6 +3183,7 @@ body {
         /* world: scroll with the camera */
         ctx.save();
         ctx.translate(-Math.round(g.camX), 0);
+        ctx.translate(0, Math.round(g.camY || 0));
 
         var plats = g.world.plats;
         for (var i = 0; i < plats.length; i++) {
@@ -3924,18 +3939,53 @@ body {
 
   /* ------------------------------------------------------------------ setup */
 
+  /* The landscape buffer the art is designed around. Portrait mode derives its
+     own buffer from this one (see fit), so this must stay constant. */
+  var BASE_VIEW = { w: 480, h: 270 };
+
   function fit() {
     var vw = global.innerWidth;
     var vh = global.innerHeight;
-    var s = Math.min(vw / C.view.w, vh / C.view.h);
-    if (s >= 2) s = Math.floor(s);
-    var w = Math.round(C.view.w * s);
-    var h = Math.round(C.view.h * s);
+    var portrait = vh > vw * 1.05;
+    var v;
+
+    if (portrait) {
+      /* A tall buffer that matches the screen's shape: the world shows less
+         width but the pixels get bigger, and the picture fills the phone. */
+      var pw = BJ.clamp(Math.round(BASE_VIEW.w * (vw / vh)), C.portrait.minWidth, C.portrait.maxWidth);
+      v = { w: pw, h: Math.round(pw * (vh / vw)) };
+    } else {
+      /* Landscape: keep the design height and let the width follow the screen,
+         so wide phones and ultrawide monitors fill the display too (16:9 lands
+         exactly on the designed 480x270). */
+      v = { w: BJ.clamp(Math.round(BASE_VIEW.h * (vw / vh)), 400, 700), h: BASE_VIEW.h };
+    }
+
+    C.view.w = v.w;
+    C.view.h = v.h;
+    C.view.portrait = portrait;
+    canvas.width = v.w;
+    canvas.height = v.h;
+
+    var s = Math.min(vw / v.w, vh / v.h);
+    /* On a big landscape screen an integer scale keeps the pixels perfectly
+       square; on a phone filling the display matters more than that. */
+    if (s >= 2 && !portrait) s = Math.floor(s);
+
+    var w = Math.round(v.w * s);
+    var h = Math.round(v.h * s);
     canvas.style.width = w + "px";
     canvas.style.height = h + "px";
     stage.style.width = w + "px";
     stage.style.height = h + "px";
     stage.style.setProperty("--hud-scale", String(s));
+    stage.style.setProperty("--hud-w", v.w + "px");
+    stage.style.setProperty("--hud-h", v.h + "px");
+
+    if (g) {
+      /* Keep the platform line at the same place on screen whatever the view. */
+      g.camY = C.view.h * C.portrait.anchor - C.world.groundY;
+    }
   }
 
   function randomSeed() {
@@ -3968,8 +4018,9 @@ body {
   }
 
   function floaterAt(text, wx, wy, cls) {
-    /* HUD is a 480x270 box scaled to the stage, so game pixels are its units */
-    ui.floater(text, wx - g.camX, wy, cls);
+    /* The HUD is a box the size of the view, scaled to the stage, so game
+       pixels are its units - minus wherever the camera is looking. */
+    ui.floater(text, wx - g.camX, wy + g.camY, cls);
   }
 
   /* -------------------------------------------------------------------- runs */
@@ -3988,7 +4039,7 @@ body {
     g.player = player;
     g.plan = null;
     g.planKey = "";
-    g.camX = player.x - 150;
+    g.camX = player.x - C.view.w * 0.28;
     g.time = 0;
     g.particles = [];
     g.trail = [];
@@ -4177,7 +4228,7 @@ body {
 
     /* camera: lead the player a little, settle fast */
     var lead = p.state === "air" ? Math.max(0, p.vx) * 3 : 0;
-    var target = p.x - 132 + lead;
+    var target = p.x - C.view.w * 0.28 + lead;
     g.camX += (target - g.camX) * Math.min(1, dt * 9);
 
     /* World streaming: one platform at a time, a few times a second. Level
@@ -4398,6 +4449,7 @@ body {
       plan: null,
       planKey: "",
       camX: 0,
+      camY: 0,
       time: 0,
       particles: [],
       trail: [],
@@ -4424,7 +4476,7 @@ body {
     ui.hudVisible(false);
     fit();
     startAttract();
-    g.camX = g.player.x - 150;
+    g.camX = g.player.x - C.view.w * 0.28;
     lastFrame = global.performance.now();
     global.requestAnimationFrame(frame);
 

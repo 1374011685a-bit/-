@@ -274,16 +274,58 @@ const problems = [];
   }
   await biomes.close();
 
-  /* a portrait phone viewport, to check the layout does not break */
-  const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
-  phone.on("pageerror", (e) => problems.push("phone pageerror: " + e.message));
-  await phone.goto(PAGE, { waitUntil: "load" });
-  await phone.waitForTimeout(2000);
-  await phone.screenshot({ path: path.join(OUT, "10-phone.png") });
-  await phone.click('[data-action="play"]');
-  await phone.waitForTimeout(2500);
-  await phone.screenshot({ path: path.join(OUT, "11-phone-play.png") });
-  await phone.close();
+  /* ---------------------------------------------------------------- phones */
+  async function phone(size, shot, shotPlay) {
+    const p = await browser.newPage({ viewport: size, deviceScaleFactor: 2 });
+    p.on("pageerror", (e) => problems.push(`${shot} pageerror: ` + e.message));
+    await p.goto(PAGE, { waitUntil: "load" });
+    await p.waitForTimeout(1500);
+    await p.screenshot({ path: path.join(OUT, shot) });
+    await p.click('[data-action="play"]');
+    await p.waitForTimeout(300);
+    await p.evaluate(() => window.BJ.Game.autoplay(true));
+    await p.waitForTimeout(4500);
+    const state = await p.evaluate(() => {
+      const c = document.getElementById("game");
+      const r = c.getBoundingClientRect();
+      const s = window.BJ.Game.state();
+      /* Look at the actual pixels: the platforms are green-topped, so if the
+         world has been pushed off the frame this count collapses to zero.
+         (This is the check that caught the portrait camera being inverted.) */
+      const ctx = c.getContext("2d");
+      const y0 = Math.floor(c.height * 0.4);
+      const px = ctx.getImageData(0, y0, c.width, c.height - y0).data;
+      let green = 0;
+      for (let i = 0; i < px.length; i += 4) {
+        if (px[i + 1] > px[i] + 20 && px[i + 1] > 90) green++;
+      }
+      return {
+        bufferW: c.width,
+        bufferH: c.height,
+        boxW: Math.round(r.width),
+        boxH: Math.round(r.height),
+        portrait: !!window.BJ.CONFIG.view.portrait,
+        plat: s.player.plat.i,
+        score: window.BJ.Player.score(s.player),
+        camY: Math.round(s.camY),
+        playerScreenY: Math.round(s.player.y + s.camY),
+        grassPixels: green
+      };
+    });
+    await p.screenshot({ path: path.join(OUT, shotPlay) });
+    await p.close();
+    console.log(`  ${shot}:`, JSON.stringify(state), `viewport ${size.width}x${size.height}`);
+    return { ...state, vw: size.width, vh: size.height };
+  }
+
+  const portrait = await phone({ width: 390, height: 844 }, "10-phone.png", "11-phone-play.png");
+  const landscape = await phone({ width: 844, height: 390 }, "16-phone-landscape.png", "17-phone-landscape-play.png");
+
+  const fills = (s) => s.boxW >= s.vw * 0.98 && s.boxH >= s.vh * 0.98;
+  const aspectOk = (s) => Math.abs(s.bufferW / s.bufferH - s.vw / s.vh) < 0.03;
+  /* platforms must sit in the lower part of the frame and actually be drawn */
+  const framed = (s) =>
+    s.grassPixels > 150 && s.playerScreenY > s.bufferH * 0.45 && s.playerScreenY < s.bufferH * 0.95;
 
   await browser.close();
 
@@ -310,6 +352,19 @@ const problems = [];
       shieldSave.shieldLeft === 0 && shieldSave.state === "idle" && shieldSave.backOnPlat === shieldSave.wasOn
     ],
     ["results screen + ladder write", overVisible && ladder.scores >= 1 && ladder.bank >= 0]
+    ,
+    [
+      "portrait phone: tall buffer filling the screen (no desktop-style letterbox)",
+      portrait.portrait && portrait.bufferH > portrait.bufferW && fills(portrait) && aspectOk(portrait) && framed(portrait),
+      `buffer ${portrait.bufferW}x${portrait.bufferH}, box ${portrait.boxW}x${portrait.boxH}`
+    ],
+    ["portrait phone: playable", portrait.plat >= 2 && portrait.score > 0, JSON.stringify({ plat: portrait.plat })],
+    [
+      "landscape phone: 16:9-class view, filling the screen",
+      !landscape.portrait && landscape.bufferH === 270 && fills(landscape) && aspectOk(landscape) && framed(landscape),
+      `buffer ${landscape.bufferW}x${landscape.bufferH}, box ${landscape.boxW}x${landscape.boxH}`
+    ],
+    ["landscape phone: playable", landscape.plat >= 2 && landscape.score > 0, JSON.stringify({ plat: landscape.plat })]
   ];
   let failed = 0;
   for (const [name, ok, extra] of results) {

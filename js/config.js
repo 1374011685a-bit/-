@@ -15,6 +15,13 @@
     /* Internal render resolution (the canvas is letterboxed up from this). */
     view: { w: 480, h: 270 },
 
+    /* Portrait phones get their own view: a tall buffer that matches the
+       screen's aspect ratio, so the game fills the whole display instead of
+       sitting in a small landscape strip with black bars. The width never goes
+       below minWidth, because the player has to be able to see the next
+       platform. `anchor` is where the platform line sits vertically. */
+    portrait: { minWidth: 300, maxWidth: 420, anchor: 0.72 },
+
     /* Fixed simulation step, in seconds. */
     step: 1 / 60,
 

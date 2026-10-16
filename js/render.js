@@ -42,14 +42,29 @@
       var ctx = canvas.getContext("2d");
       ctx.imageSmoothingEnabled = false;
 
+      /* The backdrop is sized from the current view, which changes on phones
+         when the display rotates, so it is rebuilt whenever the view changes. */
       var skyStars = [];
-      var r = BJ.rng(1337);
-      for (var i = 0; i < 90; i++) {
-        skyStars.push({ x: r() * 900, y: r() * 150, s: r() < 0.2 ? 2 : 1, p: r() * 6.28 });
-      }
       var cloudSpots = [];
-      for (var c = 0; c < 14; c++) {
-        cloudSpots.push({ x: r() * 1400, y: 18 + r() * 90, v: Math.floor(r() * 3), s: 0.6 + r() * 0.8 });
+      var backdropFor = "";
+
+      function buildBackdrop() {
+        var key = VIEW.w + "x" + VIEW.h;
+        if (key === backdropFor) return;
+        backdropFor = key;
+        var r = BJ.rng(1337);
+        skyStars = [];
+        var stars = Math.max(40, Math.round((VIEW.w * VIEW.h) / 1400));
+        for (var i = 0; i < stars; i++) {
+          skyStars.push({ x: r() * 900, y: r() * VIEW.h * 0.62, s: r() < 0.2 ? 2 : 1, p: r() * 6.28 });
+        }
+        cloudSpots = [];
+        /* keep roughly the same number of clouds *visible* whatever the view
+           is, so a tall phone frame does not end up with a bare sky */
+        var clouds = Math.max(10, Math.round((1400 / VIEW.w) * 8));
+        for (var c = 0; c < clouds; c++) {
+          cloudSpots.push({ x: r() * 1400, y: (0.03 + r() * 0.45) * VIEW.h, v: Math.floor(r() * 3), s: 0.6 + r() * 0.8 });
+        }
       }
 
       function drawSky(g) {
@@ -100,10 +115,15 @@
         }
 
         ctx.globalAlpha = 1;
+        /* mountains are anchored to the world, so they follow the camera's
+           vertical offset (portrait frames sit lower on the screen) */
+        ctx.save();
+        ctx.translate(0, Math.round(g.camY || 0));
         layer(a, 0, 0.1, 210, 1);
         if (t > 0) layer(b, 0, 0.1, 210, t);
+        ctx.restore();
 
-        /* clouds */
+        /* clouds: pure sky decoration, so they stay in screen space */
         var ci = Math.floor(g.biomeA) % biomes.length;
         for (var i = 0; i < cloudSpots.length; i++) {
           var cs = cloudSpots[i];
@@ -115,8 +135,11 @@
         }
         ctx.globalAlpha = 1;
 
+        ctx.save();
+        ctx.translate(0, Math.round(g.camY || 0));
         layer(a, 1, 0.3, 236, 1);
         if (t > 0) layer(b, 1, 0.3, 236, t);
+        ctx.restore();
       }
 
       function drawIsland(g, pl) {
@@ -319,7 +342,7 @@
         ctx.fillStyle = col;
         for (var n = 4; n <= steps; n += 4) {
           var pt = BJ.Motion.pointAt(arc, n);
-          if (pt.x > VIEW.w + 6) break;
+          if (pt.x - g.camX > VIEW.w + 6) break; /* the arc is drawn in world space */
           ctx.globalAlpha = 0.75;
           ctx.fillRect(Math.round(pt.x), Math.round(pt.y - 8), 2, 2);
         }
@@ -350,6 +373,7 @@
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, VIEW.w, VIEW.h);
+        buildBackdrop();
 
         var shake = g.shake || 0;
         var ox = shake ? Math.round((Math.random() - 0.5) * shake) : 0;
@@ -363,6 +387,7 @@
         /* world: scroll with the camera */
         ctx.save();
         ctx.translate(-Math.round(g.camX), 0);
+        ctx.translate(0, Math.round(g.camY || 0));
 
         var plats = g.world.plats;
         for (var i = 0; i < plats.length; i++) {

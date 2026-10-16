@@ -19,18 +19,53 @@
 
   /* ------------------------------------------------------------------ setup */
 
+  /* The landscape buffer the art is designed around. Portrait mode derives its
+     own buffer from this one (see fit), so this must stay constant. */
+  var BASE_VIEW = { w: 480, h: 270 };
+
   function fit() {
     var vw = global.innerWidth;
     var vh = global.innerHeight;
-    var s = Math.min(vw / C.view.w, vh / C.view.h);
-    if (s >= 2) s = Math.floor(s);
-    var w = Math.round(C.view.w * s);
-    var h = Math.round(C.view.h * s);
+    var portrait = vh > vw * 1.05;
+    var v;
+
+    if (portrait) {
+      /* A tall buffer that matches the screen's shape: the world shows less
+         width but the pixels get bigger, and the picture fills the phone. */
+      var pw = BJ.clamp(Math.round(BASE_VIEW.w * (vw / vh)), C.portrait.minWidth, C.portrait.maxWidth);
+      v = { w: pw, h: Math.round(pw * (vh / vw)) };
+    } else {
+      /* Landscape: keep the design height and let the width follow the screen,
+         so wide phones and ultrawide monitors fill the display too (16:9 lands
+         exactly on the designed 480x270). */
+      v = { w: BJ.clamp(Math.round(BASE_VIEW.h * (vw / vh)), 400, 700), h: BASE_VIEW.h };
+    }
+
+    C.view.w = v.w;
+    C.view.h = v.h;
+    C.view.portrait = portrait;
+    canvas.width = v.w;
+    canvas.height = v.h;
+
+    var s = Math.min(vw / v.w, vh / v.h);
+    /* On a big landscape screen an integer scale keeps the pixels perfectly
+       square; on a phone filling the display matters more than that. */
+    if (s >= 2 && !portrait) s = Math.floor(s);
+
+    var w = Math.round(v.w * s);
+    var h = Math.round(v.h * s);
     canvas.style.width = w + "px";
     canvas.style.height = h + "px";
     stage.style.width = w + "px";
     stage.style.height = h + "px";
     stage.style.setProperty("--hud-scale", String(s));
+    stage.style.setProperty("--hud-w", v.w + "px");
+    stage.style.setProperty("--hud-h", v.h + "px");
+
+    if (g) {
+      /* Keep the platform line at the same place on screen whatever the view. */
+      g.camY = C.view.h * C.portrait.anchor - C.world.groundY;
+    }
   }
 
   function randomSeed() {
@@ -63,8 +98,9 @@
   }
 
   function floaterAt(text, wx, wy, cls) {
-    /* HUD is a 480x270 box scaled to the stage, so game pixels are its units */
-    ui.floater(text, wx - g.camX, wy, cls);
+    /* The HUD is a box the size of the view, scaled to the stage, so game
+       pixels are its units - minus wherever the camera is looking. */
+    ui.floater(text, wx - g.camX, wy + g.camY, cls);
   }
 
   /* -------------------------------------------------------------------- runs */
@@ -83,7 +119,7 @@
     g.player = player;
     g.plan = null;
     g.planKey = "";
-    g.camX = player.x - 150;
+    g.camX = player.x - C.view.w * 0.28;
     g.time = 0;
     g.particles = [];
     g.trail = [];
@@ -272,7 +308,7 @@
 
     /* camera: lead the player a little, settle fast */
     var lead = p.state === "air" ? Math.max(0, p.vx) * 3 : 0;
-    var target = p.x - 132 + lead;
+    var target = p.x - C.view.w * 0.28 + lead;
     g.camX += (target - g.camX) * Math.min(1, dt * 9);
 
     /* World streaming: one platform at a time, a few times a second. Level
@@ -493,6 +529,7 @@
       plan: null,
       planKey: "",
       camX: 0,
+      camY: 0,
       time: 0,
       particles: [],
       trail: [],
@@ -519,7 +556,7 @@
     ui.hudVisible(false);
     fit();
     startAttract();
-    g.camX = g.player.x - 150;
+    g.camX = g.player.x - C.view.w * 0.28;
     lastFrame = global.performance.now();
     global.requestAnimationFrame(frame);
 

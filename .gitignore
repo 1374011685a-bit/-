@@ -1,0 +1,15 @@
+# Build output: regenerate with `node deploy/build-single-file.js`
+dist/
+
+# Nothing here needs node_modules - the game and its tests have no runtime
+# dependencies. (The test scripts borrow Playwright/sharp from the Codex
+# runtime on this machine; on yours, install what you need.)
+node_modules/
+
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.log

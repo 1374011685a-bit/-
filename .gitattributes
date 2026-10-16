@@ -1,0 +1,7 @@
+# Keep text files LF in the repository no matter which OS checks them out.
+# (Windows otherwise hands you CRLF in nginx.conf / Dockerfile / the scripts.)
+* text=auto eol=lf
+
+# Binary assets: never touch their line endings.
+*.png binary
+*.ico binary
