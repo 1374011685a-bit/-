@@ -160,7 +160,7 @@
     profile.bank = g.startBank + p.stars;
     profile.totalStars += p.stars;
     BJ.Save.write(profile);
-    if (p.stars > 0) ui.toast("+" + p.stars + " ★ 已存入商店 · saved to the shop", 1600);
+    if (p.stars > 0) ui.toast("+" + p.stars + " ★ saved to the bank", 1600);
     ui.result({
       score: score,
       blocks: p.blocks(),
@@ -206,7 +206,7 @@
         audio.sfx("land");
         dust(g.player.x, g.player.y);
         g.shake = Math.min(3, (pl.off || 0) + 1.2);
-        if (off > 40) ui.toast("稳住了 · saved it", 700);
+        if (off > 40) ui.toast("Saved it!", 700);
       },
       onPerfect: function (pl) {
         if (g.attract) return;
@@ -232,7 +232,7 @@
           life: 0.6,
           grav: 0.02
         });
-        var label = { shield: "SHIELD · 护盾", boost: "BOOST · 加速", magnet: "MAGNET · 磁铁" }[kind];
+        var label = { shield: "SHIELD", boost: "BOOST", magnet: "MAGNET" }[kind];
         floaterAt(label, p.x, p.y - 34, "power");
         ui.toast(label, 1100);
       },
@@ -240,14 +240,14 @@
         if (g.attract) return;
         audio.sfx("shield");
         g.shake = 3.4;
-        ui.toast(why === "fall" ? "护盾救你一命 · SHIELD SAVED YOU" : "护盾挡下了 · SHIELD BLOCKED IT", 1400);
+        ui.toast(why === "fall" ? "SHIELD SAVED YOU" : "SHIELD BLOCKED IT", 1400);
         burst(g.player.x, g.player.y - 8, 18, ["#8ec2ff", "#ffffff", "#4a86e8"], { speed: 2.2, life: 0.7, grav: 0.02 });
       },
       onCrumbleStart: function () {
         if (!g.attract) audio.sfx("crumble");
       },
       onLedgeGone: function () {
-        if (!g.attract) ui.toast("平台塌了！ · LEDGE GONE", 900);
+        if (!g.attract) ui.toast("LEDGE GONE!", 900);
       },
       onDeath: function (cause) {
         g.deadAt = g.time;
@@ -324,7 +324,7 @@
     if (g.biomeT === 0 && bi !== g.biomeA) {
       g.biomeB = bi;
       g.biomeT = 0.0001;
-      if (g.mode === "play") ui.toast(C.biomes[bi].name + " · 新区域", 1200);
+      if (g.mode === "play") ui.toast(C.biomes[bi].name + " · NEW AREA", 1200);
     }
     if (g.biomeT > 0) {
       g.biomeT = Math.min(1, g.biomeT + dt / 1.6);
@@ -450,7 +450,7 @@
     }
     if (key === "aid") {
       g.aid = profile.settings.aid;
-      ui.toast(profile.settings.aid ? "辅助线开 · AIM AID ON" : "辅助线关 · AIM AID OFF", 1200);
+      ui.toast(profile.settings.aid ? "AIM AID ON" : "AIM AID OFF", 1200);
     }
     BJ.Save.write(profile);
     ui.toggles(profile);
@@ -460,7 +460,7 @@
     if (profile.owned.indexOf(skinId) >= 0) return;
     if (profile.bank < price) {
       audio.sfx("deny");
-      ui.toast("星星不够 · NOT ENOUGH STARS (" + profile.bank + "/" + price + ")", 1500);
+      ui.toast("NOT ENOUGH STARS (" + profile.bank + "/" + price + ")", 1500);
       return;
     }
     profile.bank -= price;

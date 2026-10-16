@@ -68,7 +68,12 @@
       moverFrom: 26,
       crumbleFrom: 18,
       breatherEvery: 16,
-      spawnX: 64
+      spawnX: 64,
+      /* The MSU main building stands off to the right of the starting ledge and
+         drifts past as you set off - your run starts on campus. */
+      landmarkX: 296,
+      landmarkParallax: 0.3,
+      landmarkHorizon: 210
     },
 
     economy: {
@@ -80,14 +85,14 @@
 
     /* Character skins. Prices are in stars (the in-run currency). */
     skins: [
-      { id: "orange", name: "橙子 Orange", price: 0, body: "#e08a3c", shade: "#a85f22", light: "#f6b56b", eye: "#2b1a0d" },
-      { id: "ice", name: "蓝冰 Ice", price: 150, body: "#5aa9e8", shade: "#2f6fa8", light: "#9ad4f6", eye: "#0e2130" },
-      { id: "leaf", name: "翠绿 Leaf", price: 300, body: "#66bb4a", shade: "#3d8a2c", light: "#a5e37f", eye: "#12240d" },
-      { id: "violet", name: "暗紫 Violet", price: 600, body: "#9a6ce0", shade: "#6a45a8", light: "#c6a4f6", eye: "#1c1030" },
-      { id: "gold", name: "黄金 Gold", price: 900, body: "#e8c247", shade: "#a8891f", light: "#fbe89a", eye: "#2e2306" },
-      { id: "sakura", name: "樱花 Sakura", price: 1400, body: "#f078a8", shade: "#b04a76", light: "#ffb6d0", eye: "#3a0d20" },
-      { id: "obsidian", name: "黑曜 Obsidian", price: 2000, body: "#3c3c4c", shade: "#23232e", light: "#5e5e74", eye: "#ff4d4d" },
-      { id: "rainbow", name: "彩虹 Rainbow", price: 3000, body: "#ff5a5a", shade: "#8a2a8a", light: "#ffe066", eye: "#101020", rainbow: true }
+      { id: "orange", name: "Orange", price: 0, body: "#e08a3c", shade: "#a85f22", light: "#f6b56b", eye: "#2b1a0d" },
+      { id: "ice", name: "Ice", price: 150, body: "#5aa9e8", shade: "#2f6fa8", light: "#9ad4f6", eye: "#0e2130" },
+      { id: "leaf", name: "Leaf", price: 300, body: "#66bb4a", shade: "#3d8a2c", light: "#a5e37f", eye: "#12240d" },
+      { id: "violet", name: "Violet", price: 600, body: "#9a6ce0", shade: "#6a45a8", light: "#c6a4f6", eye: "#1c1030" },
+      { id: "gold", name: "Gold", price: 900, body: "#e8c247", shade: "#a8891f", light: "#fbe89a", eye: "#2e2306" },
+      { id: "sakura", name: "Blossom", price: 1400, body: "#f078a8", shade: "#b04a76", light: "#ffb6d0", eye: "#3a0d20" },
+      { id: "obsidian", name: "Obsidian", price: 2000, body: "#3c3c4c", shade: "#23232e", light: "#5e5e74", eye: "#ff4d4d" },
+      { id: "rainbow", name: "Rainbow", price: 3000, body: "#ff5a5a", shade: "#8a2a8a", light: "#ffe066", eye: "#101020", rainbow: true }
     ],
 
     /* Background themes, cycled as the run gets longer. */

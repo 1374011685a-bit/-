@@ -28,6 +28,23 @@
     var toastTimer = null;
 
     var ui = {
+      /* The same MSU pixel art the game uses as its landmark, painted into the
+         credit badges (badge = 3x, the small footers = 1x). */
+      paintTowers: function () {
+        function paint(cv, scale) {
+          if (!cv) return;
+          var art = BJ.Pixel.msu();
+          cv.width = art.width * scale;
+          cv.height = art.height * scale;
+          var g = cv.getContext("2d");
+          g.imageSmoothingEnabled = false;
+          g.drawImage(art, 0, 0, art.width, art.height, 0, 0, cv.width, cv.height);
+        }
+        paint(el("credit-tower"), 3);
+        Array.prototype.forEach.call(doc.querySelectorAll(".foot-tower"), function (cv) {
+          paint(cv, 1);
+        });
+      },
       current: function () {
         return current;
       },
@@ -128,20 +145,20 @@
 
           var price = doc.createElement("div");
           price.className = "price";
-          price.innerHTML = owned ? "已拥有 OWNED" : "★ <b>" + skin.price + "</b>";
+          price.innerHTML = owned ? "OWNED" : "★ <b>" + skin.price + "</b>";
           card.appendChild(price);
 
           var btn = doc.createElement("button");
           if (equipped) {
-            btn.textContent = "使用中 EQUIPPED";
+            btn.textContent = "EQUIPPED";
             btn.disabled = true;
           } else if (owned) {
-            btn.textContent = "装备 EQUIP";
+            btn.textContent = "EQUIP";
             btn.addEventListener("click", function () {
               handlers.equip(skin.id);
             });
           } else {
-            btn.textContent = "购买 BUY";
+            btn.textContent = "BUY";
             btn.addEventListener("click", function () {
               handlers.buy(skin.id, skin.price);
             });
@@ -156,7 +173,7 @@
         body.innerHTML = "";
         if (!profile.scores.length) {
           var tr = doc.createElement("tr");
-          tr.innerHTML = '<td colspan="5" class="empty">还没有记录 · No runs yet — go jump!</td>';
+          tr.innerHTML = '<td colspan="5" class="empty">No runs yet — go jump!</td>';
           body.appendChild(tr);
         }
         profile.scores.forEach(function (s, i) {
@@ -186,9 +203,9 @@
           var box = el(id);
           box.innerHTML = "";
           [
-            { key: "sfx", label: "音效 SFX" },
-            { key: "music", label: "音乐 MUSIC" },
-            { key: "aid", label: "辅助线 AIM AID" }
+            { key: "sfx", label: "SFX" },
+            { key: "music", label: "MUSIC" },
+            { key: "aid", label: "AIM AID" }
           ].forEach(function (item) {
             var b = doc.createElement("button");
             b.className = "toggle" + (profile.settings[item.key] ? " on" : "");
@@ -203,7 +220,7 @@
       result: function (data) {
         el("over-eyebrow").textContent = data.record ? "NEW RECORD" : "RUN OVER";
         el("over-eyebrow").classList.toggle("new", !!data.record);
-        el("over-title").textContent = data.record ? "新纪录！" : "跳完了";
+        el("over-title").textContent = data.record ? "New record!" : "Run over";
         el("over-score").textContent = data.score;
         el("over-blocks").textContent = data.blocks + " BLK";
         el("over-stars").textContent = data.stars;
@@ -229,6 +246,8 @@
     el("input-name").addEventListener("change", function () {
       handlers.rename(this.value);
     });
+
+    ui.paintTowers();
 
     return ui;
   }

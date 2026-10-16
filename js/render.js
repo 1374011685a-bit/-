@@ -139,6 +139,21 @@
         ctx.translate(0, Math.round(g.camY || 0));
         layer(a, 1, 0.3, 236, 1);
         if (t > 0) layer(b, 1, 0.3, 236, t);
+        /* The MSU main building, standing on the horizon of the starting
+           campus. Drawn in front of the near range so it reads as a landmark;
+           biomeA 0 is the night campus, and it fades out as you leave it. */
+        if (g.biomeA === 0) {
+          var fade = 1 - t;
+          if (fade > 0.02) {
+            var img = P.msu();
+            var mx = C.world.landmarkX - g.camX * C.world.landmarkParallax;
+            if (mx > -img.width - 20 && mx < VIEW.w + 20) {
+              ctx.globalAlpha = fade;
+              ctx.drawImage(img, Math.round(mx), C.world.landmarkHorizon - img.height);
+              ctx.globalAlpha = 1;
+            }
+          }
+        }
         ctx.restore();
       }
 

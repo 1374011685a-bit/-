@@ -1,7 +1,7 @@
 {
-  "name": "方块跳跳 Block Jump",
+  "name": "Block Jump",
   "short_name": "Block Jump",
-  "description": "一键操作的像素风休闲跳跃游戏 · A one-button pixel-art jumping game",
+  "description": "A one-button pixel-art jumping game. Made by MSU English Group 1.",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

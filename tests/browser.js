@@ -43,6 +43,37 @@ const problems = [];
   const title = await page.textContent("#screen-title .title");
   console.log("title text:", JSON.stringify(title));
 
+  /* the studio credit has to be there, and its badge has to be painted with
+     the MSU tower sprite rather than left as an empty canvas */
+  const credit = await page.evaluate(() => {
+    const main = document.querySelector("#screen-title .credit-main");
+    const cv = document.getElementById("credit-tower");
+    const px = cv.getContext("2d").getImageData(0, 0, cv.width, cv.height).data;
+    let drawn = 0;
+    for (let i = 3; i < px.length; i += 4) if (px[i] > 0) drawn++;
+    const art = window.BJ.Pixel.msu();
+    const ap = art.getContext("2d").getImageData(0, 0, art.width, art.height).data;
+    let goldTop = 0;
+    let bodyLow = 0;
+    for (let y = 0; y < art.height; y++) {
+      for (let x = 0; x < art.width; x++) {
+        const i = (y * art.width + x) * 4;
+        const gold = ap[i] > 200 && ap[i + 1] > 140 && ap[i + 2] < 130 && ap[i + 3] > 0;
+        if (gold && y < 8) goldTop++;
+        if (ap[i + 3] > 0 && y > art.height * 0.75) bodyLow++;
+      }
+    }
+    return {
+      text: main ? main.textContent.trim() : "",
+      drawn,
+      size: cv.width + "x" + cv.height,
+      artSize: art.width + "x" + art.height,
+      goldTop,
+      bodyLow
+    };
+  });
+  console.log("credit:", JSON.stringify(credit));
+
   /* attract mode must be running behind the menu */
   const attract = await page.evaluate(() => {
     const s = window.BJ.Game.state();
@@ -333,6 +364,16 @@ const problems = [];
   const results = [
     ["no console/page errors", problems.length === 0, problems.join(" | ")],
     ["title renders", title && title.includes("BLOCK JUMP")],
+    [
+      'credit "Made by MSU English Group 1" is on the title screen',
+      credit.text.includes("MSU English Group 1"),
+      credit.text
+    ],
+    [
+      "credit badge shows the MSU tower pixel art (star on top, building below)",
+      credit.drawn > 400 && credit.goldTop >= 6 && credit.bodyLow > 400,
+      `drawn ${credit.drawn}px in a ${credit.size} badge, sprite ${credit.artSize}, gold top ${credit.goldTop}px`
+    ],
     ["attract mode is playing behind the menu", attract.mode === "title" && attract.blocks > 4],
     ["how-to screen renders", howtoVisible],
     ["shop lists every skin", skins === 8],

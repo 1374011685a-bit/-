@@ -314,6 +314,58 @@
     return s.c;
   }
 
+  /**
+   * The Lomonosov Moscow State University main building, as a distant pixel
+   * silhouette: a tiered central tower with a star on the spire between two
+   * wings, a few lit windows, standing on the horizon next to where you start.
+   */
+  function buildMsuTower() {
+    var biome = C.biomes[0];
+    var body = biome.mountainNear;
+    var rim = shade(body, 0.22);
+    var gold = "#ffd864";
+    var s = make(72, 52);
+    var g = s.g;
+    function rect(x, y, w, h, col) {
+      g.fillStyle = col;
+      g.fillRect(x, y, w, h);
+    }
+
+    /* plinth */
+    rect(2, 45, 68, 7, body);
+    rect(2, 45, 68, 1, rim);
+    /* wings */
+    rect(7, 35, 19, 10, body);
+    rect(46, 35, 19, 10, body);
+    rect(7, 35, 19, 1, rim);
+    rect(46, 35, 19, 1, rim);
+    /* tiers, narrowing upwards */
+    rect(26, 28, 20, 7, body);
+    rect(26, 28, 20, 1, rim);
+    rect(28, 21, 16, 7, body);
+    rect(28, 21, 16, 1, rim);
+    rect(30, 15, 12, 6, body);
+    rect(30, 15, 12, 1, rim);
+    rect(32, 10, 8, 5, body);
+    rect(32, 10, 8, 1, rim);
+    /* spire and the star */
+    rect(34, 5, 4, 5, body);
+    rect(34, 5, 1, 5, rim);
+    rect(33, 3, 6, 2, gold);
+    rect(35, 0, 2, 6, gold);
+    /* windows, lit for the evening */
+    var windows = [
+      [11, 38], [16, 41], [21, 38],
+      [30, 31], [35, 31], [40, 31],
+      [31, 24], [37, 24], [33, 17], [36, 18],
+      [49, 38], [54, 41], [59, 38]
+    ];
+    g.globalAlpha = 0.9;
+    for (var i = 0; i < windows.length; i++) rect(windows[i][0], windows[i][1], 1, 1, gold);
+    g.globalAlpha = 1;
+    return s.c;
+  }
+
   /* Jagged mountain silhouette, 256 wide, tiled horizontally. */
   function buildMountains(biome, layer) {
     var W = 256;
@@ -375,6 +427,7 @@
       cache.mountains[biome.id] = [buildMountains(biome, 0), buildMountains(biome, 1)];
     });
     cache.star = buildStar();
+    cache.msu = buildMsuTower();
     cache.hazard = [0, 1, 2, 3].map(buildHazard);
     cache.powerup = {
       shield: buildPowerup("shield"),
@@ -416,6 +469,10 @@
     star: function () {
       buildAll();
       return cache.star;
+    },
+    msu: function () {
+      buildAll();
+      return cache.msu;
     },
     hazard: function (frame) {
       buildAll();

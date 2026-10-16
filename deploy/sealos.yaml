@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: docker.io/YOUR_DOCKERHUB_NAME/block-jump:1.0
+          image: ghcr.io/1374011685a-bit/block-jump:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

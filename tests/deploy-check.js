@@ -78,7 +78,19 @@ ok("ingress backend port 80", /number:\s*80/.test(yaml));
 const appLabel = (yaml.match(/app:\s*block-jump/g) || []).length;
 ok("app label used by deployment, service and ingress", appLabel >= 4, `${appLabel} occurrences`);
 ok("readiness probe on /", /readinessProbe:[\s\S]*?path:\s*\//.test(yaml));
-ok("image placeholder is obvious", /YOUR_DOCKERHUB_NAME/.test(yaml));
+/* sealos.yaml and the workflow must point at the same image, or the two
+   deployment paths would quietly deploy different things. */
+const yamlImage = (yaml.match(/^\s*image:\s*(\S+)\s*$/m) || ["", ""])[1];
+const repoOf = (ref) => {
+  /* strip a tag, but only when the colon comes after the last slash - "ghcr.io"
+     has its own colon that must not be mistaken for one */
+  const colon = ref.lastIndexOf(":");
+  return colon > ref.lastIndexOf("/") ? ref.slice(0, colon) : ref;
+};
+const wfImage = (fs
+  .readFileSync(path.join(CTX, ".github/workflows/docker.yml"), "utf8")
+  .match(/^\s*IMAGE:\s*(\S+)\s*$/m) || ["", ""])[1];
+ok("sealos.yaml and the workflow use the same image", !!yamlImage && repoOf(yamlImage) === repoOf(wfImage), `${yamlImage} vs ${wfImage}`);
 ok("resources requests+limits set", /requests:[\s\S]*?cpu:/.test(yaml) && /limits:[\s\S]*?memory:/.test(yaml));
 
 /* ---------------------------------------------------------------- nginx conf */

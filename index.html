@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta
@@ -7,7 +7,7 @@
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
     <meta name="theme-color" content="#0a0e19" />
-    <meta name="description" content="Block Jump 方块跳跳 - a one-button pixel-art jumping game. 一键操作的像素风休闲跳跃游戏。" />
+    <meta name="description" content="Block Jump - a one-button pixel-art jumping game. Made by MSU English Group 1." />
     <link rel="icon" type="image/png" sizes="64x64" href="favicon.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <link rel="manifest" href="manifest.json" />
@@ -15,7 +15,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Block Jump" />
-    <title>方块跳跳 Block Jump</title>
+    <title>Block Jump</title>
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
@@ -49,12 +49,12 @@
               <div class="meter-fill" id="meter-fill"></div>
               <div class="meter-marker" id="meter-marker"></div>
             </div>
-            <div class="meter-hint" id="meter-hint">按住蓄力 · 松开起跳 &nbsp;/&nbsp; HOLD to charge · RELEASE to jump</div>
+          <div class="meter-hint" id="meter-hint">HOLD TO CHARGE · RELEASE TO JUMP</div>
           </div>
 
           <div class="toast" id="hud-toast"></div>
           <div class="floaters" id="hud-floaters"></div>
-          <button class="icon-btn pause no-jump" id="btn-pause" title="暂停 Pause">❚❚</button>
+          <button class="icon-btn pause no-jump" id="btn-pause" title="Pause">❚❚</button>
         </div>
       </div>
 
@@ -63,17 +63,22 @@
         <div class="screen-inner center">
           <p class="eyebrow">ORIGINAL PIXEL CASUAL GAME</p>
           <h1 class="title">BLOCK JUMP</h1>
-          <p class="title-cn">方块跳跳</p>
           <p class="tagline">One jump. One world. Push your reflexes to the limit.</p>
-          <p class="tagline cn">一跳一世界 · 挑战你的反应极限</p>
+          <div class="credit">
+            <canvas id="credit-tower" width="216" height="156" aria-hidden="true"></canvas>
+            <div class="credit-text">
+              <p class="credit-main">Made by MSU English Group 1</p>
+              <p class="credit-sub">Lomonosov Moscow State University · English Group No. 1</p>
+            </div>
+          </div>
           <div class="menu">
-            <button class="btn primary" data-action="play">开始游戏 <span>START</span></button>
-            <button class="btn" data-action="howto">怎么玩 <span>HOW TO PLAY</span></button>
-            <button class="btn" data-action="shop">商店 <span>SKINS</span></button>
-            <button class="btn" data-action="ranks">排行榜 <span>RANKS</span></button>
+            <button class="btn primary" data-action="play">PLAY</button>
+            <button class="btn" data-action="howto">HOW TO PLAY</button>
+            <button class="btn" data-action="shop">SKINS</button>
+            <button class="btn" data-action="ranks">RANKS</button>
           </div>
           <div class="toggles" id="toggles-title"></div>
-          <p class="footnote">BLOCK JUMP · 一跳一世界</p>
+          <p class="footnote">BLOCK JUMP · ONE JUMP, ONE WORLD · MADE BY MSU ENGLISH GROUP 1</p>
         </div>
       </section>
 
@@ -82,55 +87,49 @@
         <div class="screen-inner">
           <p class="eyebrow">04 / CONTROLS</p>
           <h2 class="h2">How to play</h2>
-          <p class="h2-cn">怎么玩？</p>
           <div class="cols">
             <div class="col">
-              <h3 class="h3">PC · 电脑端</h3>
+              <h3 class="h3">PC</h3>
               <div class="keys"><span class="key">Space</span><span class="key">Mouse Click</span></div>
               <p class="body">
-                Press Space or click anywhere to charge, release to jump.<br />
-                按空格或鼠标点击，按住蓄力、松开出跳。
+                Press Space or click anywhere to charge, release to jump.
               </p>
             </div>
             <div class="col">
-              <h3 class="h3">Mobile · 手机端</h3>
+              <h3 class="h3">Mobile</h3>
               <div class="keys"><span class="key wide">Touch Tap</span></div>
               <p class="body">
-                Tap anywhere on screen; long-press to charge, release to jump. One-hand friendly.<br />
-                手指点屏幕，长按蓄力、松开出跳，单手就能玩。
+                Tap anywhere on screen; long-press to charge, release to jump. One-hand friendly.
               </p>
             </div>
           </div>
           <div class="rule"></div>
           <p class="eyebrow">02 / CORE GAMEPLAY</p>
           <h2 class="h2">Three steps to get hooked</h2>
-          <p class="h2-cn">三步上手，一秒入坑</p>
           <ol class="steps">
-            <li><b>1 Jump</b><span>按住蓄力，松手跳向下一个平台 · Tap and hold, release to leap</span></li>
-            <li><b>2 Dodge</b><span>躲开缺口与陷阱 · Time it — don't fall, don't hit traps</span></li>
-            <li><b>3 Collect</b><span>把路上的星星全吃掉 · Grab every star on the way</span></li>
+            <li><b>1 Jump</b><span>Hold to charge, release to leap to the next platform</span></li>
+            <li><b>2 Dodge</b><span>Time it — don't fall, don't hit traps</span></li>
+            <li><b>3 Collect</b><span>Grab every star on the way</span></li>
           </ol>
           <p class="body muted">
-            落到哪里就从哪里起跳 —— 站在平台越靠右，下一跳就越轻松；贴着右侧边缘落下会判定
-            <b>PERFECT +50</b>。· You jump from exactly where you land, so landing further right makes the next
-            jump shorter. Land on the far edge for a PERFECT bonus.
+            You jump from exactly where you land, so coming down further right makes the next jump shorter. Land
+            on the far edge and it counts as a <b>PERFECT</b> landing, worth +50.
           </p>
           <div class="rule"></div>
           <p class="eyebrow">06 / COLLECTIBLES</p>
           <h2 class="h2">Power-ups</h2>
-          <p class="h2-cn">道具</p>
           <div class="cards">
-            <div class="card"><b>Shield · 护盾</b><span>抵挡一次失误 · Blocks one fall or crash</span></div>
-            <div class="card"><b>Boost · 加速</b><span>短时间跳得更远 · Jump farther, faster</span></div>
-            <div class="card"><b>Magnet · 磁铁</b><span>自动吸附星星 · Auto-collect nearby stars</span></div>
+            <div class="card"><b>Shield</b><span>Blocks one fall or crash</span></div>
+            <div class="card"><b>Boost</b><span>Jump farther and faster for a while</span></div>
+            <div class="card"><b>Magnet</b><span>Pulls in nearby stars</span></div>
           </div>
           <p class="body muted">
-            星星既是分数，也能在商店解锁皮肤。 · Stars count toward your score and can be spent on new skins.
-            一直按住不会浪费：蓄力槽到顶后会回落，可以等移动平台靠过来再出跳。
+            Stars are both your score and your currency — spend them on new skins in the shop. Holding a charge
+            never wastes it: the power meter swings back down, so you can wait for a moving platform to come close.
           </p>
           <div class="menu row">
-            <button class="btn primary" data-action="play">开始游戏 <span>START</span></button>
-            <button class="btn" data-action="back">返回 <span>BACK</span></button>
+            <button class="btn primary" data-action="play">PLAY</button>
+            <button class="btn" data-action="back">BACK</button>
           </div>
         </div>
       </section>
@@ -140,12 +139,11 @@
         <div class="screen-inner">
           <p class="eyebrow">07 / SKINS</p>
           <h2 class="h2">Skins</h2>
-          <p class="h2-cn">皮肤 · 攒星星换新造型</p>
-          <p class="bank-line">可用星星 BANK <b id="shop-bank">0</b></p>
+          <p class="bank-line">STARS TO SPEND <b id="shop-bank">0</b></p>
           <div class="skins" id="shop-grid"></div>
           <div class="menu row">
-            <button class="btn primary" data-action="play">开始游戏 <span>START</span></button>
-            <button class="btn" data-action="back">返回 <span>BACK</span></button>
+            <button class="btn primary" data-action="play">PLAY</button>
+            <button class="btn" data-action="back">BACK</button>
           </div>
         </div>
       </section>
@@ -155,9 +153,8 @@
         <div class="screen-inner">
           <p class="eyebrow">08 / RANKS</p>
           <h2 class="h2">Leaderboard</h2>
-          <p class="h2-cn">排行榜 · 本机记录</p>
           <div class="rank-name">
-            <label for="input-name">名字 NAME</label>
+            <label for="input-name">NAME</label>
             <input id="input-name" maxlength="12" spellcheck="false" />
           </div>
           <table class="ranks" id="ranks-table">
@@ -167,12 +164,14 @@
             <tbody></tbody>
           </table>
           <p class="body muted">
-            本榜单保存在本机浏览器里（换浏览器或清理数据会重置）。全球排行榜需要接入服务端，接入位置见 README。
+            This ladder lives in this browser only — switching browsers or clearing site data resets it. A
+            worldwide board needs a server; see the README for where to hook one up.
           </p>
           <div class="menu row">
-            <button class="btn primary" data-action="play">开始游戏 <span>START</span></button>
-            <button class="btn" data-action="back">返回 <span>BACK</span></button>
+            <button class="btn primary" data-action="play">PLAY</button>
+            <button class="btn" data-action="back">BACK</button>
           </div>
+          <p class="screen-foot"><canvas class="foot-tower" width="72" height="52" aria-hidden="true"></canvas><span>Made by <b>MSU English Group 1</b> · Lomonosov Moscow State University</span></p>
         </div>
       </section>
 
@@ -180,13 +179,14 @@
       <section class="screen dim" id="screen-pause">
         <div class="screen-inner center">
           <p class="eyebrow">PAUSED</p>
-          <h2 class="h2">暂停</h2>
+          <h2 class="h2">Paused</h2>
           <div class="menu">
-            <button class="btn primary" data-action="resume">继续 <span>RESUME</span></button>
-            <button class="btn" data-action="restart">重新开始 <span>RESTART</span></button>
-            <button class="btn" data-action="menu">返回主菜单 <span>MENU</span></button>
+            <button class="btn primary" data-action="resume">RESUME</button>
+            <button class="btn" data-action="restart">RESTART</button>
+            <button class="btn" data-action="menu">MAIN MENU</button>
           </div>
           <div class="toggles" id="toggles-pause"></div>
+          <p class="screen-foot"><canvas class="foot-tower" width="72" height="52" aria-hidden="true"></canvas><span>Made by <b>MSU English Group 1</b> · MSU</span></p>
         </div>
       </section>
 
@@ -194,7 +194,7 @@
       <section class="screen dim" id="screen-over">
         <div class="screen-inner center">
           <p class="eyebrow" id="over-eyebrow">RUN OVER</p>
-          <h2 class="h2" id="over-title">跳完了</h2>
+          <h2 class="h2" id="over-title">Run over</h2>
           <div class="result">
             <div class="result-row"><span>SCORE</span><b id="over-score">0</b></div>
             <div class="result-row"><span>DISTANCE</span><b id="over-blocks">0 BLK</b></div>
@@ -203,9 +203,10 @@
             <div class="result-row"><span>BEST</span><b id="over-best">0</b></div>
             <div class="result-row"><span>LOCAL RANK</span><b id="over-rank">-</b></div>
           </div>
+          <p class="screen-foot"><canvas class="foot-tower" width="72" height="52" aria-hidden="true"></canvas><span>Made by <b>MSU English Group 1</b> · MSU</span></p>
           <div class="menu row">
-            <button class="btn primary" data-action="restart">再来一局 <span>RETRY</span></button>
-            <button class="btn" data-action="menu">返回主菜单 <span>MENU</span></button>
+            <button class="btn primary" data-action="restart">RETRY</button>
+            <button class="btn" data-action="menu">MAIN MENU</button>
           </div>
         </div>
       </section>

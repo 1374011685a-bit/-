@@ -388,37 +388,82 @@ body {
   line-height: 0.98;
 }
 
-.title-cn {
-  margin: 6px 0 0;
-  font-size: clamp(16px, 3.4vw, 26px);
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 0.08em;
-}
-
 .tagline {
   margin: 14px 0 0;
   font-size: clamp(12px, 2.2vw, 15px);
   color: rgba(238, 242, 250, 0.9);
 }
 
-.tagline.cn {
-  margin-top: 4px;
+/* Credits: deliberately the loudest thing under the title, with the MSU main
+   building drawn from the same pixel art the game uses. */
+.credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px auto 0;
+  padding: 12px 18px 12px 12px;
+  border: 1px solid rgba(240, 140, 46, 0.55);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(240, 140, 46, 0.16), rgba(240, 140, 46, 0.05));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 10px 30px rgba(0, 0, 0, 0.35);
+  text-align: left;
+}
+
+.credit canvas {
+  width: 108px;
+  height: 78px;
+  image-rendering: pixelated;
+  flex: 0 0 auto;
+}
+
+.credit-text {
+  display: grid;
+  gap: 3px;
+}
+
+.credit-main {
+  margin: 0;
+  font-size: clamp(17px, 3.4vw, 24px);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--accent-soft);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
+.credit-sub {
+  margin: 0;
   font-size: 11px;
+  color: rgba(238, 242, 250, 0.72);
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+}
+
+.screen-foot {
+  margin: 22px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.06em;
   color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.screen-foot b {
+  color: var(--accent-soft);
+}
+
+.screen-foot canvas {
+  width: 36px;
+  height: 26px;
+  image-rendering: pixelated;
 }
 
 .h2 {
-  margin: 0;
+  margin: 0 0 18px; /* the Chinese subtitle line that used to set this gap is gone */
   font-size: clamp(24px, 5vw, 40px);
   font-weight: 800;
   letter-spacing: -0.02em;
-}
-
-.h2-cn {
-  margin: 4px 0 18px;
-  font-size: 12px;
-  color: var(--muted);
 }
 
 .h3 {
@@ -573,13 +618,6 @@ body {
   gap: 10px;
 }
 
-.btn span {
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  color: var(--muted);
-  text-transform: uppercase;
-}
-
 .btn:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(240, 140, 46, 0.5);
@@ -593,10 +631,6 @@ body {
   background: linear-gradient(180deg, #f39a3f, #d9761c);
   border-color: #ffca8a;
   color: #24140a;
-}
-
-.btn.primary span {
-  color: rgba(36, 20, 10, 0.66);
 }
 
 .menu.row .btn {
